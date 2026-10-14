@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: marketplaceb2b-api
+server:
+  port: 8080

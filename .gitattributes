@@ -1,0 +1,10 @@
+# Normalize line endings
+* text=auto
+
+# Shell scripts must use LF (the Gradle wrapper breaks with CRLF)
+gradlew    text eol=lf
+*.sh       text eol=lf
+
+# Windows batch files use CRLF
+*.bat      text eol=crlf
+gradlew.bat text eol=crlf
