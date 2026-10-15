@@ -62,4 +62,16 @@ class ValidationTest {
                 new BigDecimal("500000.00"), new BigDecimal("300000.00"));
         assertThat(validator.validate(account)).isEmpty();
     }
+
+    @Test
+    void detectsNonAlphanumericFiscalId() {
+        Customer customer = new Customer(1L, 2L, "Tienda", "CUIT-20", 1L);
+        assertThat(validator.validate(customer)).isNotEmpty();
+    }
+
+    @Test
+    void acceptsAlphanumericFiscalId() {
+        Customer customer = new Customer(1L, 2L, "Tienda", "20304050607", 1L);
+        assertThat(validator.validate(customer)).isEmpty();
+    }
 }

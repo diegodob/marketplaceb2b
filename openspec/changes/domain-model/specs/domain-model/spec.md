@@ -72,6 +72,20 @@ Creating a domain instance SHALL NOT throw on a constraint violation. A violatio
 - **WHEN** a quote line with quantity `0` is constructed
 - **THEN** no error is thrown at construction, and the violation is reported only when a validator runs
 
+### Requirement: Customer fiscal identifier
+
+A customer SHALL carry an alphanumeric fiscal identifier and a fiscal identifier type. The fiscal identifier type SHALL be related to a country; valid types are country-specific (for example `CUIT` in Argentina). The alphanumeric rule is enforced from Java as a Bean Validation constraint, not by the database.
+
+#### Scenario: Fiscal id is alphanumeric and bounded
+
+- **WHEN** the customer type is inspected
+- **THEN** its fiscal identifier carries an alphanumeric pattern and a maximum size
+
+#### Scenario: Fiscal id type relates to a country
+
+- **WHEN** a fiscal identifier type is inspected
+- **THEN** it references a country
+
 ### Requirement: Supported rounding modes only
 
 A rounding mode SHALL be limited to the supported set, `HALF_UP` and `HALF_EVEN`.

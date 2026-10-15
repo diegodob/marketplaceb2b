@@ -31,7 +31,9 @@
 
 **Package `com.marketplaceb2b.model`.** Entities and enums in that package; it fills the `model` layer promised by `api-foundation`.
 
-**Type set.** Entities: `Country`, `Tenant`, `TaxCategory`, `Ruleset`, `TaxRate`, `Product`, `ProductPrice`, `PaymentMethod`, `Customer`, `CreditAccount`, `Quote`, `QuoteLine`, `SalesOrder`, `IdempotencyKey`, `CreditLedgerEntry`, `OutboxEvent`. Persistence-only rows (`IdempotencyKey`, `OutboxEvent`) are included here so every entity has one home.
+**Type set.** Entities: `Country`, `Tenant`, `TaxCategory`, `Ruleset`, `TaxRate`, `FiscalIdType`, `Product`, `ProductPrice`, `PaymentMethod`, `Customer`, `CreditAccount`, `Quote`, `QuoteLine`, `SalesOrder`, `IdempotencyKey`, `CreditLedgerEntry`, `OutboxEvent`. Persistence-only rows (`IdempotencyKey`, `OutboxEvent`) are included here so every entity has one home.
+
+**Fiscal identifier.** A customer carries `fiscalId` (alphanumeric, `@Pattern("[A-Za-z0-9]+")`, `@Size(max = 30)`) and `fiscalIdTypeId` pointing at a `FiscalIdType`. A `FiscalIdType` belongs to a country (`countryId`, plus `code`/`name`; e.g. `CUIT` for Argentina). The alphanumeric rule is a Java constraint only; the database column carries no `CHECK`, so the database does not enforce the format.
 
 ## Risks / Trade-offs
 

@@ -13,7 +13,7 @@ class ModelArchitectureTest {
 
     private static final List<Class<?>> MODEL_TYPES = List.of(
             Country.class, Tenant.class, TaxCategory.class, Ruleset.class, TaxRate.class,
-            Product.class, ProductPrice.class, PaymentMethod.class, Customer.class,
+            FiscalIdType.class, Product.class, ProductPrice.class, PaymentMethod.class, Customer.class,
             CreditAccount.class, Quote.class, QuoteLine.class, SalesOrder.class,
             IdempotencyKey.class, CreditLedgerEntry.class, OutboxEvent.class);
 
