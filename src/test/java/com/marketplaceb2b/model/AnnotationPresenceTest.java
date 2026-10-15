@@ -31,6 +31,7 @@ class AnnotationPresenceTest {
         assertThat(accessor(TaxRate.class, "rate").isAnnotationPresent(NotNull.class)).isTrue();
         assertThat(accessor(Country.class, "code").isAnnotationPresent(NotNull.class)).isTrue();
         assertThat(accessor(Tenant.class, "countryId").isAnnotationPresent(NotNull.class)).isTrue();
+        assertThat(accessor(Customer.class, "fiscalId").isAnnotationPresent(NotNull.class)).isTrue();
     }
 
     @Test
