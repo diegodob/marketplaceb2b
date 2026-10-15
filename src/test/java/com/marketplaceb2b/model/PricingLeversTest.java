@@ -34,8 +34,8 @@ class PricingLeversTest {
         return new ScaleTier(fromQty, new BigDecimal(percentage));
     }
 
-    private static ScaleDiscount scale(DiscountTargetType type, Long productId, String family, List<ScaleTier> tiers) {
-        return new ScaleDiscount(1L, 1L, type, productId, family, tiers);
+    private static ScaleDiscount scale(DiscountTargetType type, Long productId, Long familyId, List<ScaleTier> tiers) {
+        return new ScaleDiscount(1L, 1L, type, productId, familyId, tiers);
     }
 
     private static ComboItem item(long productId, int minQty) {
@@ -46,14 +46,15 @@ class PricingLeversTest {
         return new Combo(1L, 1L, "pack", items, new BigDecimal(price));
     }
 
-    private static GiftCondition condition(GiftConditionType type, Long productId, String family, int minQty) {
-        return new GiftCondition(type, productId, family, minQty);
+    private static GiftCondition condition(Long productId, Long familyId, Integer minQty, String minAmount) {
+        return new GiftCondition(productId, familyId, minQty, minAmount == null ? null : new BigDecimal(minAmount));
     }
 
     @Test
     void validScaleHasNoViolations() {
         assertThat(validator.validate(scale(DiscountTargetType.SKU, 10L, null,
                 List.of(tier(1, "0"), tier(10, "10"))))).isEmpty();
+        assertThat(validator.validate(scale(DiscountTargetType.FAMILY, null, 7L, List.of(tier(1, "5"))))).isEmpty();
     }
 
     @Test
@@ -75,8 +76,15 @@ class PricingLeversTest {
     @Test
     void scaleRejectsInconsistentTarget() {
         assertThat(validator.validate(scale(DiscountTargetType.SKU, null, null, List.of(tier(1, "5"))))).isNotEmpty();
-        assertThat(validator.validate(scale(DiscountTargetType.FAMILY, 10L, "bebidas", List.of(tier(1, "5")))))
-                .isNotEmpty();
+        assertThat(validator.validate(scale(DiscountTargetType.FAMILY, 10L, 7L, List.of(tier(1, "5"))))).isNotEmpty();
+    }
+
+    @Test
+    void scaleRejectsNonIncreasingTiers() {
+        assertThat(validator.validate(scale(DiscountTargetType.SKU, 10L, null,
+                List.of(tier(10, "5"), tier(10, "10"))))).isNotEmpty();
+        assertThat(validator.validate(scale(DiscountTargetType.SKU, 10L, null,
+                List.of(tier(10, "5"), tier(5, "10"))))).isNotEmpty();
     }
 
     @Test
@@ -100,20 +108,35 @@ class PricingLeversTest {
     }
 
     @Test
-    void validGiftHasNoViolations() {
-        assertThat(validator.validate(new Gift(1L, 1L,
-                condition(GiftConditionType.PRODUCT_QTY, 5L, null, 3), 9L, 1))).isEmpty();
+    void validGiftConditionsHaveNoViolations() {
+        assertThat(validator.validate(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, 1))).isEmpty();
+        assertThat(validator.validate(new Gift(1L, 1L, condition(null, null, null, "1000.00"), 9L, 1))).isEmpty();
+        assertThat(validator.validate(new Gift(1L, 1L, condition(5L, null, 3, "1000.00"), 9L, 1))).isEmpty();
+    }
+
+    @Test
+    void giftConditionRejectsMissingThreshold() {
+        assertThat(validator.validate(condition(null, null, null, null))).isNotEmpty();
+    }
+
+    @Test
+    void giftConditionRejectsQuantityWithoutTarget() {
+        assertThat(validator.validate(condition(null, null, 3, null))).isNotEmpty();
+    }
+
+    @Test
+    void giftConditionRejectsBothTargets() {
+        assertThat(validator.validate(condition(5L, 7L, 3, null))).isNotEmpty();
+    }
+
+    @Test
+    void giftConditionRejectsNegativeAmount() {
+        assertThat(validator.validate(condition(null, null, null, "-1"))).isNotEmpty();
     }
 
     @Test
     void giftRejectsNonPositiveQuantity() {
-        assertThat(validator.validate(new Gift(1L, 1L,
-                condition(GiftConditionType.PRODUCT_QTY, 5L, null, 3), 9L, 0))).isNotEmpty();
-    }
-
-    @Test
-    void giftRejectsInconsistentCondition() {
-        assertThat(validator.validate(condition(GiftConditionType.PRODUCT_QTY, null, "bebidas", 3))).isNotEmpty();
+        assertThat(validator.validate(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, 0))).isNotEmpty();
     }
 
     @Test

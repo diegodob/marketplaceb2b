@@ -7,10 +7,11 @@ The take-home's commercial levers — scale discounts, combos and gifts — are 
 ## What Changes
 
 - Add **Java domain types** for the levers (no tables, no engine):
-  - **Scale discount**: a target (a SKU or a product family) plus ordered, cumulative tiers (`fromQty` → percentage).
-  - **Combo**: a set of `product` + `minQty` items and a combo price.
-  - **Gift**: a purchase condition plus the gifted product and quantity.
-- Enforce validity declaratively: percentages `0`–`100`, positive quantities, non-empty tier/item lists, and a target/condition consistent with its type.
+  - **Scale discount**: a target (a SKU or a `ProductFamily`) plus cumulative, strictly increasing tiers (`fromQty` → percentage).
+  - **Combo**: a set of `product` + `minQty` items and a `comboPrice` that is the total for the set.
+  - **Gift**: a purchase condition — a quantity of a product/family and/or a minimum amount — plus the gifted product and quantity.
+- Turn a product's family into an entity: add **`ProductFamily`** (per tenant) and make **`Product`** reference it by id instead of a free-text name.
+- Enforce validity declaratively: percentages `0`–`100`, positive quantities, strictly increasing tiers, non-empty lists, and a target/condition consistent with its type.
 - **Out of scope:** persistence (tables/migrations), repositories, the calculation engine, and the order of application.
 
 ## Capabilities

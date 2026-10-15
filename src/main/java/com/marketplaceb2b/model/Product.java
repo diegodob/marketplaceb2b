@@ -7,5 +7,5 @@ public record Product(
         @NotNull Long tenantId,
         @NotNull String sku,
         @NotNull String name,
-        String family) {
+        Long familyId) {
 }

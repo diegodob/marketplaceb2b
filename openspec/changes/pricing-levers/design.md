@@ -2,45 +2,38 @@
 
 ## Context
 
-`model` already holds the immutable domain types for the order flow (products, prices, taxes, quotes, orders). This change adds the commercial-lever types. See proposal.md for motivation and `specs/pricing-levers/spec.md` for the behaviour contract. The types must be persistence-agnostic and hang off a `ruleset`, like prices and taxes.
+`model` already holds the immutable domain types for the order flow. This change adds the commercial-lever types and turns a product's family into a reference to a tenant-scoped entity. See proposal.md for motivation and `specs/pricing-levers/spec.md` for the behaviour contract. Scope is the domain model only.
 
 ## Goals / Non-Goals
 
 **Goals:**
 - Immutable, validated types for scale discounts, combos and gifts.
-- A shape ready for a later pricing engine to consume.
-- Fast plain-JUnit tests (a `Validator`, no Spring context).
+- A tenant-scoped `ProductFamily` entity so families are referable, not free text.
+- Shapes ready for a later pricing engine.
 
 **Non-Goals:**
-- Tables/migrations, repositories.
-- The calculation engine and the order in which levers are applied.
-- Applying levers to a quote.
+- Tables/migrations, repositories (the schema change follows in a persistence change).
+- The calculation engine and the order of application.
 
 ## Decisions
 
-**Levers are versioned by `ruleset`.** Each lever carries a `rulesetId`, exactly as `product_price` and `tax_rate` do, so a lever definition belongs to one commercial-rules version.
+**Family is an entity, per tenant.** A `ProductFamily(id, tenantId, name)` belongs to a tenant; `Product.familyId` and the levers' family target reference it by id, replacing the free-text `family`. The persistence change that adds the `product_family` table and `product.family_id` follows separately; the domain is corrected now.
 
-**Scale discount = target + cumulative tiers.** A `ScaleDiscount` has a `DiscountTargetType` (`SKU` or `FAMILY`), a `productId` (SKU) or a `family` (FAMILY), and a non-empty list of `ScaleTier(fromQty, percentage)`. The tiers are ordered by `fromQty`; the engine will apply them per tramo. Alternative considered: a flat list of `(minQty, percentage)` applied as a single best-match — rejected; the take-home says scales are cumulative by tramos.
+**Scale discount = target + cumulative, increasing tiers.** A `ScaleDiscount` has a `DiscountTargetType` (`SKU` or `FAMILY`), a `productId` or a `familyId`, and a non-empty list of `ScaleTier(fromQty, percentage)`. The tiers must be strictly increasing by `fromQty`; that check is an `@AssertTrue` on the record, so it runs with every other constraint when a validator is invoked (at load/validation time), consistent with the rest of the flows.
 
-**Cross-field consistency via `@AssertTrue`.** A `ScaleDiscount` exposes `isTargetConsistent()` (SKU ⇒ productId set and family null; FAMILY ⇒ the reverse); a `GiftCondition` does the same. This keeps the rule declarative and validator-checked, as with `CreditAccount`'s balance rule.
+**Combo = items + a total price.** A `Combo` has a `name`, a non-empty list of `ComboItem(productId, minQty)` and a non-negative `comboPrice` that is the **total for the set**.
 
-**Combo = items + price.** A `Combo` has a `name`, a non-empty list of `ComboItem(productId, minQty)` and a non-negative `comboPrice`. Whether `comboPrice` is a total for the set or a per-unit price is deferred (Open Questions).
+**Gift = condition (quantity and/or amount) + gift product/quantity.** A `GiftCondition` carries an optional `productId`/`familyId` target, an optional positive `minQty` and an optional non-negative `minAmount`. It is well-formed when it has at least one threshold, a quantity threshold names exactly one target, and the two targets are never both set. Whether both thresholds combine as AND or OR is deferred to the engine.
 
-**Gift = condition + gift product/quantity.** A `Gift` has a `GiftCondition` and a `giftProductId`/`giftQty`. The condition is modelled minimally as a type (`PRODUCT_QTY`/`FAMILY_QTY`), a `productId`/`family` and a `minQty`; richer conditions are deferred (Open Questions).
-
-**`BigDecimal` for money and percentages; enums for closed sets; immutable records; `Long id` nullable until persisted.** Consistent with the existing model; validation is declarative (`jakarta.validation`), not thrown in the constructor.
-
-**Package `com.marketplaceb2b.model`.** The lever types join the existing model package so the engine change finds one vocabulary.
+**Cross-field rules via `@AssertTrue`; `BigDecimal` for money/percentages; enums for closed sets; immutable records; `Long id` nullable; package `com.marketplaceb2b.model`.** Consistent with the existing model; validation is declarative, not thrown in constructors.
 
 ## Risks / Trade-offs
 
-- **The lever semantics are richer than the model** → the model captures the *shape*, not the calculation; the engine change will add the application rules. Accepted, by scope.
-- **`comboPrice`/`family` ambiguity** → carried as open questions; the types can be refined with a migration-free change since nothing is persisted yet.
-- **No persistence** → the types are not stored; the engine change adds the tables.
+- **Domain ahead of schema** → `Product.familyId` and `ProductFamily` have no table yet; the persistence change will add `product_family` and `product.family_id`. Accepted by scope.
+- **Gift AND/OR semantics undefined** → the model captures the shape; the engine fixes the semantics.
+- **No engine** → the types are definitions only; nothing consumes them yet.
 
 ## Open Questions
 
-- Is `comboPrice` a total for the set, or a per-unit price?
-- Is the gift condition limited to "at least N of a product/family", or does it also cover "minimum total amount"?
-- Is `family` a free-text string (as in `product.family`) or should it become its own entity?
-- Must the tiers be strictly increasing in `fromQty`, and is that validated in the model or by the engine?
+- When a gift condition carries both a quantity and an amount threshold, is the trigger an AND or an OR?
+- Should `ProductFamily.name` be unique per tenant (like `product` SKU is)?

@@ -12,17 +12,35 @@ public record ScaleDiscount(
         @NotNull Long rulesetId,
         @NotNull DiscountTargetType targetType,
         Long productId,
-        String family,
+        Long familyId,
         @NotNull @Size(min = 1) @Valid List<ScaleTier> tiers) {
 
-    @AssertTrue(message = "target must be exactly one of productId (SKU) or family (FAMILY)")
+    @AssertTrue(message = "target must be exactly one of productId (SKU) or familyId (FAMILY)")
     public boolean isTargetConsistent() {
         if (targetType == DiscountTargetType.SKU) {
-            return productId != null && family == null;
+            return productId != null && familyId == null;
         }
         if (targetType == DiscountTargetType.FAMILY) {
-            return family != null && productId == null;
+            return familyId != null && productId == null;
         }
         return false;
+    }
+
+    @AssertTrue(message = "tiers must be strictly increasing by starting quantity")
+    public boolean isTiersIncreasing() {
+        if (tiers == null) {
+            return true;
+        }
+        int previous = 0;
+        for (ScaleTier tier : tiers) {
+            if (tier == null) {
+                continue;
+            }
+            if (tier.fromQty() <= previous) {
+                return false;
+            }
+            previous = tier.fromQty();
+        }
+        return true;
     }
 }

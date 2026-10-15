@@ -1,23 +1,27 @@
 package com.marketplaceb2b.model;
 
+import java.math.BigDecimal;
+
 import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 public record GiftCondition(
-        @NotNull GiftConditionType type,
         Long productId,
-        String family,
-        @Positive int minQty) {
+        Long familyId,
+        @Positive Integer minQty,
+        @PositiveOrZero BigDecimal minAmount) {
 
-    @AssertTrue(message = "condition must be exactly one of productId (PRODUCT_QTY) or family (FAMILY_QTY)")
-    public boolean isConsistent() {
-        if (type == GiftConditionType.PRODUCT_QTY) {
-            return productId != null && family == null;
+    @AssertTrue(message = "a condition needs a quantity and/or an amount threshold; a quantity needs exactly one target")
+    public boolean isWellFormed() {
+        if (productId != null && familyId != null) {
+            return false;
         }
-        if (type == GiftConditionType.FAMILY_QTY) {
-            return family != null && productId == null;
+        boolean hasQuantity = minQty != null;
+        boolean hasAmount = minAmount != null;
+        if (!hasQuantity && !hasAmount) {
+            return false;
         }
-        return false;
+        return !hasQuantity || productId != null || familyId != null;
     }
 }
