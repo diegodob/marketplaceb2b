@@ -10,23 +10,23 @@ Assumptions carried from design.md: H2 in PostgreSQL compatibility mode, Flyway-
 
 ## 2. V1 reference schema
 
-- [x] 2.1 Author `V1__reference.sql` (`country`, `fiscal_id_type`, `tenant`, `tax_category`, `ruleset`, `tax_rate`) with identity PKs, `UNIQUE`/`CHECK` constraints and explicit FK indexes; verify the migration applies cleanly
+- [x] 2.1 Author `V1__schema.sql` with the reference group (`country`, `fiscal_id_type`, `tenant`, `tax_category`, `ruleset`, `tax_rate`), identity PKs, `UNIQUE`/`CHECK` constraints and explicit FK indexes; verify the migration applies cleanly
 - [x] 2.2 Add integration tests asserting rejection of: duplicate `country.code`; duplicate `(country_id, code)` in `fiscal_id_type`; duplicate `tenant.name`; duplicate `(tenant_id, version)` and duplicate `(tenant_id, effective_from)` in `ruleset`; out-of-range and duplicate `(ruleset_id, tax_category_id)` in `tax_rate`; a FK to an unknown parent; verify all tests pass
 
 ## 3. V2 catalog and credit
 
-- [x] 3.1 Author `V2__catalog.sql` (`product`, `product_price`, `payment_method`, `customer`, `credit_account`) with constraints and indexes; verify the migration applies cleanly
+- [x] 3.1 Add the catalog and credit group (`product`, `product_price`, `payment_method`, `customer`, `credit_account`) to `V1__schema.sql` with constraints and indexes; verify the migration applies cleanly
 - [x] 3.2 Add integration tests asserting rejection of: duplicate SKU within a tenant; duplicate `(ruleset_id, product_id)` and negative `unit_price`; duplicate `(tenant_id, code)` and missing `uses_credit`; a customer with a missing `fiscal_id` or `fiscal_id_type_id` and a customer with an unknown `fiscal_id_type_id`; a second credit account for one customer; `available < 0` and `available > credit_limit`; verify all tests pass
 - [x] 3.3 Add the multi-tenant isolation test with two tenants holding the same SKU, asserting a tenant-scoped read returns only that tenant's rows
 
 ## 4. V3 quotes
 
-- [x] 4.1 Author `V3__quotes.sql` (`quote`, `quote_line`) with constraints and indexes; verify the migration applies cleanly
+- [x] 4.1 Add the quotes group (`quote`, `quote_line`) to `V1__schema.sql` with constraints and indexes; verify the migration applies cleanly
 - [x] 4.2 Add integration tests asserting rejection of: duplicate `quote.public_id`; duplicate `(quote_id, product_id)`; non-positive `qty`; verify all tests pass
 
 ## 5. V4 orders, idempotency, ledger, outbox
 
-- [x] 5.1 Author `V4__orders.sql` (`sales_order`, `idempotency_key`, `credit_ledger`, `outbox`) with constraints and indexes; verify the migration applies cleanly
+- [x] 5.1 Add the orders/idempotency/ledger/outbox group (`sales_order`, `idempotency_key`, `credit_ledger`, `outbox`) to `V1__schema.sql` with constraints and indexes; verify the migration applies cleanly
 - [x] 5.2 Add integration tests asserting rejection of: a second order for the same `quote_id`; duplicate `sales_order.public_number`; duplicate `(customer_id, idem_key)`; two `CONSUMPTION` rows for one order; duplicate `(sales_order_id, destination, event_type)`; invalid enum values in `credit_ledger.entry_type`, `outbox.destination`, `outbox.event_type` and `outbox.status`; verify all tests pass
 
 ## 6. Immutability and append-only enforcement
@@ -36,7 +36,7 @@ Assumptions carried from design.md: H2 in PostgreSQL compatibility mode, Flyway-
 
 ## 7. Seed data and acceptance
 
-- [x] 7.1 Add the seed as a Flyway migration `V5__seed.sql` (country AR; `fiscal_id_type` `CUIT` for AR; tenant; ruleset `AR-2026-10-01.1` with `currency_scale` 2 and `rounding_mode` `HALF_UP`; `GENERAL`/`REDUCED` categories; three products with prices; `CREDIT`/`CASH` methods; customer 12 with fiscal id and limit 500000.00 and available 300000.00); verify it applies and is idempotent across restarts
+- [x] 7.1 Add the seed as a Flyway migration `V2__seed.sql` (country AR; `fiscal_id_type` `CUIT` for AR; tenant; ruleset `AR-2026-10-01.1` with `currency_scale` 2 and `rounding_mode` `HALF_UP`; `GENERAL`/`REDUCED` categories; three products with prices; `CREDIT`/`CASH` methods; customer 12 with fiscal id and limit 500000.00 and available 300000.00); verify it applies and is idempotent across restarts
 - [x] 7.2 Add an acceptance test reproducing the example: quote total `93070.00` equals the sum of `taxable_base + tax` over its lines; a money-scale test asserts no stored monetary value exceeds its `currency_scale`; `sales_order` has no total column; a confirmed order yields two `PENDING` outbox rows (`PUSH`, `ERP`, `ORDER_CONFIRMED`); a replayed confirmation returns the same order
 
 ## 8. Integration verification

@@ -24,7 +24,7 @@ Stack: Java 21, Spring Boot 3, H2 in-memory in **PostgreSQL compatibility mode**
 
 **H2 in PostgreSQL mode for tests; Flyway for the schema.** Flyway owns the schema (`db/migration/V*.sql`), so the same migrations run on H2 (test) and on Postgres (production). Migration SQL stays standard; Postgres-specific features are avoided. Alternative: no migration tool (schema from code) — rejected; the take-home asks for migrations and versioned, additive change.
 
-**Migration grouping (one per logical group):** `V1__reference.sql` (`country`, `fiscal_id_type`, `tenant`, `tax_category`, `ruleset`, `tax_rate`), `V2__catalog.sql` (`product`, `product_price`, `payment_method`, `customer`, `credit_account`), `V3__quotes.sql` (`quote`, `quote_line`), `V4__orders.sql` (`sales_order`, `idempotency_key`, `credit_ledger`, `outbox`).
+**Migrations:** `V1__schema.sql` creates the whole base schema in one versioned unit — reference (`country`, `fiscal_id_type`, `tenant`, `tax_category`, `ruleset`, `tax_rate`), catalog and credit (`product`, `product_price`, `payment_method`, `customer`, `credit_account`), quotes (`quote`, `quote_line`) and orders/idempotency/ledger/outbox (`sales_order`, `idempotency_key`, `credit_ledger`, `outbox`). `V2__seed.sql` loads the example data. Schema and data are separate migrations so the seed can be excluded per environment.
 
 **Identity keys + explicit `UNIQUE`.** Every table uses `id BIGINT GENERATED ALWAYS AS IDENTITY`; every business key is an explicit `UNIQUE`. Public identifiers (`quote.public_id`, `sales_order.public_number`) are `UUID`, never the sequential `id`, so ids are not guessable and do not leak volume.
 
@@ -42,7 +42,7 @@ Stack: Java 21, Spring Boot 3, H2 in-memory in **PostgreSQL compatibility mode**
 
 `NOT NULL` unless marked nullable. Types are as written for the H2/Postgres migrations.
 
-### V1 — reference
+### Reference
 
 **country**
 | column | type | constraints |
@@ -96,7 +96,7 @@ Stack: Java 21, Spring Boot 3, H2 in-memory in **PostgreSQL compatibility mode**
 | rate | DECIMAL(7,4) | NOT NULL, CHECK (rate >= 0 AND rate <= 100) |
 | | | UNIQUE (ruleset_id, tax_category_id) `uq_tax_rate_category` |
 
-### V2 — catalog and credit
+### Catalog and credit
 
 **product**
 | column | type | constraints |
@@ -147,7 +147,7 @@ Stack: Java 21, Spring Boot 3, H2 in-memory in **PostgreSQL compatibility mode**
 | available | DECIMAL(19,4) | NOT NULL |
 | | | CHECK (available >= 0 AND available <= credit_limit) |
 
-### V3 — quotes
+### Quotes
 
 **quote** (immutable)
 | column | type | constraints |
@@ -175,7 +175,7 @@ Stack: Java 21, Spring Boot 3, H2 in-memory in **PostgreSQL compatibility mode**
 | tax | DECIMAL(19,4) | NOT NULL — rounded |
 | | | UNIQUE (quote_id, product_id) `uq_quote_line_product` (also serves the `quote_id` FK index) |
 
-### V4 — orders, idempotency, ledger, outbox
+### Orders, idempotency, ledger, outbox
 
 **sales_order**
 | column | type | constraints |
@@ -289,8 +289,8 @@ erDiagram
 ## Migration Plan
 
 - Add H2 + Flyway dependencies and configuration; migrations run on startup.
-- Ship `V1`–`V4` as described; the schema is additive, so rollback is "drop and recreate" in dev/test (in-memory H2) and a down migration if ever needed in production.
-- Seed data (see tasks) is loaded by a dedicated Flyway migration or a test fixture, never by editing `V1`–`V4`.
+- Ship `V1__schema.sql` (the base schema) and `V2__seed.sql` (example data); the schema is additive, so rollback is "drop and recreate" in dev/test (in-memory H2) and a down migration if ever needed in production.
+- The seed lives in its own migration and is never mixed into `V1__schema.sql`.
 
 ## Open Questions
 
