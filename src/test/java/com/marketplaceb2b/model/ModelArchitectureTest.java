@@ -15,7 +15,8 @@ class ModelArchitectureTest {
             Country.class, Tenant.class, TaxCategory.class, Ruleset.class, TaxRate.class,
             FiscalIdType.class, Product.class, ProductPrice.class, PaymentMethod.class, Customer.class,
             CreditAccount.class, Quote.class, QuoteLine.class, SalesOrder.class,
-            IdempotencyKey.class, CreditLedgerEntry.class, OutboxEvent.class);
+            IdempotencyKey.class, CreditLedgerEntry.class, OutboxEvent.class,
+            ScaleTier.class, ScaleDiscount.class, ComboItem.class, Combo.class, GiftCondition.class, Gift.class);
 
     @Test
     void allTypesAreRecords() {
