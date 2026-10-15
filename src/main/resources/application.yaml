@@ -1,5 +1,15 @@
 spring:
   application:
     name: marketplaceb2b-api
+  datasource:
+    url: jdbc:h2:mem:marketplaceb2b;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  flyway:
+    locations: classpath:db/migration
 server:
   port: 8080
+marketplace:
+  quote:
+    validity: PT24H
