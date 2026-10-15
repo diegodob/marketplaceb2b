@@ -6,7 +6,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -23,6 +26,17 @@ public class PersistenceAccess {
     public long insert(String sql, Map<String, ?> params) {
         assertNotMutatingAppendOnly(sql);
         return jdbc.update(sql, params);
+    }
+
+    public long insertReturningId(String sql, Map<String, ?> params) {
+        assertNotMutatingAppendOnly(sql);
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(sql, new MapSqlParameterSource(params), keyHolder);
+        Number key = keyHolder.getKey();
+        if (key == null) {
+            throw new IllegalStateException("No generated key returned for: " + sql);
+        }
+        return key.longValue();
     }
 
     public <T> T query(String sql, Map<String, ?> params, RowMapper<T> rowMapper) {
