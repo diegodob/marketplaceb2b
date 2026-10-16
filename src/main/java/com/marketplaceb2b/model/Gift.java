@@ -9,5 +9,6 @@ public record Gift(
         @NotNull Long rulesetId,
         @NotNull @Valid GiftCondition condition,
         @NotNull Long giftProductId,
-        @Positive int giftQty) {
+        @Positive int giftQty,
+        boolean taxable) {
 }

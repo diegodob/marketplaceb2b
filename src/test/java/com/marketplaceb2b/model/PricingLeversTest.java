@@ -203,22 +203,22 @@ class PricingLeversTest {
 
     @Test
     void validGiftByQuantityOfProductHasNoViolations() {
-        assertThat(validator.validate(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, 1))).isEmpty();
+        assertThat(validator.validate(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, 1, false))).isEmpty();
     }
 
     @Test
     void validGiftByQuantityOfFamilyHasNoViolations() {
-        assertThat(validator.validate(new Gift(1L, 1L, condition(null, 7L, 3, null), 9L, 1))).isEmpty();
+        assertThat(validator.validate(new Gift(1L, 1L, condition(null, 7L, 3, null), 9L, 1, false))).isEmpty();
     }
 
     @Test
     void validGiftByAmountOnlyHasNoViolations() {
-        assertThat(validator.validate(new Gift(1L, 1L, condition(null, null, null, "1000.00"), 9L, 1))).isEmpty();
+        assertThat(validator.validate(new Gift(1L, 1L, condition(null, null, null, "1000.00"), 9L, 1, false))).isEmpty();
     }
 
     @Test
     void validGiftByQuantityAndAmountHasNoViolations() {
-        assertThat(validator.validate(new Gift(1L, 1L, condition(5L, null, 3, "1000.00"), 9L, 1))).isEmpty();
+        assertThat(validator.validate(new Gift(1L, 1L, condition(5L, null, 3, "1000.00"), 9L, 1, false))).isEmpty();
     }
 
     @Test
@@ -249,15 +249,15 @@ class PricingLeversTest {
 
     @Test
     void giftRejectsMissingRequiredFields() {
-        assertThat(violations(new Gift(1L, null, condition(5L, null, 3, null), 9L, 1))).contains("rulesetId");
-        assertThat(violations(new Gift(1L, 1L, null, 9L, 1))).contains("condition");
-        assertThat(violations(new Gift(1L, 1L, condition(5L, null, 3, null), null, 1))).contains("giftProductId");
+        assertThat(violations(new Gift(1L, null, condition(5L, null, 3, null), 9L, 1, false))).contains("rulesetId");
+        assertThat(violations(new Gift(1L, 1L, null, 9L, 1, false))).contains("condition");
+        assertThat(violations(new Gift(1L, 1L, condition(5L, null, 3, null), null, 1, false))).contains("giftProductId");
     }
 
     @Test
     void giftRejectsNonPositiveQuantity() {
-        assertThat(violations(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, 0))).contains("giftQty");
-        assertThat(violations(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, -2))).contains("giftQty");
+        assertThat(violations(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, 0, false))).contains("giftQty");
+        assertThat(violations(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, -2, false))).contains("giftQty");
     }
 
     // --- Types ----------------------------------------------------------------
