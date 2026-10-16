@@ -23,6 +23,20 @@
 
 **Combo strategy.** A combo is **applicable** when every item's **still-available** units reach its minimum. When applied (in priority order), it covers exactly `minQty` units per item: each covered line keeps its **list gross** and gets a **discount** equal to its share of `(covered list value − combo price)`, prorated across the items by their share of the covered list value (the last item takes the rounding remainder). The **combo discount entry** carries — with its origin (the lever type and its `sourceId`) — the total amount. Units above the minimum keep the regular price; the covered units are consumed. If several combos apply, the higher `priority` runs first and a later combo only sees the units the earlier ones left (so it may no longer be applicable).
 
+## Ejemplo: combo de dos productos con impuestos distintos
+
+Datos del seed: `GAS-500` 4000 (GENERAL 21%), `YER-1KG` 6000 (REDUCED 10.5%). Combo `{GAS-500 mín 6, YER-1KG mín 3}` a **35000**. Carrito: GAS-500 ×6, YER-1KG ×3 (ninguna otra palanca aplica).
+
+Valor de lista cubierto = 6×4000 + 3×6000 = 42000; descuento = 42000 − 35000 = 7000, repartido por valor de lista (4/7 y 3/7).
+
+| Línea | qty | unit | gross (lista) | discount | base = gross − disc | tasa | tax |
+|---|---|---|---|---|---|---|---|
+| GAS-500 | 6 | 4000 | 24000 | 4000 | 20000 | 21% | 4200.00 |
+| YER-1KG | 3 | 6000 | 18000 | 3000 | 15000 | 10.5% | 1575.00 |
+| **Totales** | | | **42000** | **7000** | **35000** | | **5775.00** |
+
+Entrada de descuento: `origin=COMBO, sourceId=<id del combo>, amount=7000.00`. `Σ base` = 35000 (= precio del combo); total a pagar = 35000 + 5775 = **40775.00**.
+
 ## Risks / Trade-offs
 
 - **Prorating the combo discount across its items** → the covered lines keep their list gross and each takes a discount share (by list value); then `Σ base` equals the combo price and every line keeps a base for the tax step. Documented.
