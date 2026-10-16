@@ -10,6 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import com.marketplaceb2b.service.exception.IdempotencyConflictException;
+import com.marketplaceb2b.service.exception.InsufficientCreditException;
+import com.marketplaceb2b.service.exception.QuoteExpiredException;
+import com.marketplaceb2b.service.model.OrderConfirmation;
 import com.marketplaceb2b.support.AbstractIntegrationTest;
 
 class OrderConfirmationServiceTest extends AbstractIntegrationTest {

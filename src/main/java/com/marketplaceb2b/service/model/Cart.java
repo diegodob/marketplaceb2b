@@ -1,4 +1,4 @@
-package com.marketplaceb2b.service;
+package com.marketplaceb2b.service.model;
 
 import java.util.List;
 

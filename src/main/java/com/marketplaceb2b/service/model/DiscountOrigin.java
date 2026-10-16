@@ -1,4 +1,4 @@
-package com.marketplaceb2b.service;
+package com.marketplaceb2b.service.model;
 
 public enum DiscountOrigin {
     COMBO,

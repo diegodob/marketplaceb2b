@@ -32,7 +32,7 @@ The `discounts`/`gifts` lists are present but empty, so the lever slices fill th
 
 **Rounding via a `Money` value object.** To avoid raw, error-prone `BigDecimal` arithmetic with scattered `setScale` calls, money is modelled by a `Money` record (`amount`, `scale`, `roundingMode`) built from the ruleset. Every operation on it returns a new `Money` already rounded to the currency scale with the ruleset mode — `times(qty)`, `times(factor)`, `percentage(rate)` (the tax = amount × rate / 100) and `plus(...)` (which rejects mixing different policies). The engine works in `Money` and unwraps to `BigDecimal` only at the DTO boundary, so the scale/rounding can never be forgotten. All money stays `BigDecimal` underneath.
 
-**Package.** The service and DTOs live in `com.marketplaceb2b.service` (DTOs may go in a `pricing` subpackage).
+**Package.** The services live in `com.marketplaceb2b.service`; the cart/breakdown value objects and `Money` in `com.marketplaceb2b.service.model`; the exceptions in `com.marketplaceb2b.service.exception`.
 
 ## Risks / Trade-offs
 
