@@ -65,7 +65,7 @@ A combo SHALL list at least one item (a product and a positive minimum quantity)
 
 ### Requirement: Gift condition and quantity
 
-A gift SHALL have a purchase condition and a positive quantity of the gifted product. The condition SHALL require at least one threshold: a quantity of a product or family and/or a minimum amount. A quantity threshold SHALL name a product or a family (never both), and a minimum amount SHALL not be negative.
+A gift SHALL have a purchase condition and a positive quantity of the gifted product. The condition SHALL require at least one threshold: a quantity of a product or family and/or a minimum amount. When both a quantity and an amount threshold are present they SHALL combine as AND. A quantity threshold SHALL name a product or a family (never both), and a minimum amount SHALL not be negative.
 
 #### Scenario: Condition without a threshold is reported
 

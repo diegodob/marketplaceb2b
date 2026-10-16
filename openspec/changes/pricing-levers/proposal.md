@@ -11,6 +11,7 @@ The take-home's commercial levers — scale discounts, combos and gifts — are 
   - **Combo**: a set of `product` + `minQty` items and a `comboPrice` that is the total for the set.
   - **Gift**: a purchase condition — a quantity of a product/family and/or a minimum amount — plus the gifted product and quantity.
 - Turn a product's family into an entity: add **`ProductFamily`** (per tenant) and make **`Product`** reference it by id instead of a free-text name.
+- Add a Flyway migration **`V3__product_family.sql`** (additive): create `product_family` with `UNIQUE (tenant_id, name)`, add `product.family_id` (FK), and drop the now-unused `product.family` column; add a `ProductFamilyRepository`.
 - Enforce validity declaratively: percentages `0`–`100`, positive quantities, strictly increasing tiers, non-empty lists, and a target/condition consistent with its type.
 - **Out of scope:** persistence (tables/migrations), repositories, the calculation engine, and the order of application.
 
@@ -20,7 +21,7 @@ The take-home's commercial levers — scale discounts, combos and gifts — are 
 - `pricing-levers`: the immutable domain types for the commercial levers and their validity rules.
 
 ### Modified Capabilities
-- None.
+- `data-model`: `product` references `product_family` by id instead of a free-text `family`, and the `product_family` table is added.
 
 ## Impact
 
