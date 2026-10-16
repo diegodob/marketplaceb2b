@@ -25,7 +25,7 @@
 
 **Gift = condition (quantity and/or amount) + gift product/quantity.** A `GiftCondition` carries an optional `productId`/`familyId` target, an optional positive `minQty` and an optional non-negative `minAmount`. It is well-formed when it has at least one threshold, a quantity threshold names exactly one target, and the two targets are never both set. Either threshold may be absent on its own (`minQty` null, or `minAmount` null) as long as one is present; when both are present the trigger is **AND** (a disjunction is expressed by defining two separate gift conditions).
 
-**Cross-field rules via `@AssertTrue`; `BigDecimal` for money/percentages; enums for closed sets; immutable records; `Long id` nullable; package `com.marketplaceb2b.model`.** Consistent with the existing model; validation is declarative, not thrown in constructors.
+**Cross-field rules via `@AssertTrue`; `BigDecimal` for money/percentages; enums for closed sets; immutable records; `Long id` nullable; package `com.marketplaceb2b.model`.** Consistent with the existing model; validation is declarative, not thrown in constructors. List components (`ScaleDiscount.tiers`, `Combo.items`) must be non-empty and their elements non-null (`List<@NotNull ...>`), so a null element is a validation error rather than being silently skipped by the cascade.
 
 **Additive migration for the family.** `V1__schema.sql` is already released, so the family is added through a new `V3__product_family.sql` rather than rewriting `V1`: it creates `product_family` (`UNIQUE (tenant_id, name)`), adds a nullable `product.family_id` with an index, adds the FK to `product_family`, and drops the now-unused `product.family` column. A `ProductFamilyRepository` gives the new entity its data-access path.
 
