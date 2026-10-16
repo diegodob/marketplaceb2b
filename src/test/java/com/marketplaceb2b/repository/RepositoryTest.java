@@ -75,6 +75,7 @@ class RepositoryTest extends AbstractIntegrationTest {
     void scaleDiscountRepositoryLoadsSeedWithTiers() {
         List<ScaleDiscount> scales = scaleDiscounts.findByRuleset(arRulesetId());
         assertThat(scales).hasSize(2);
+        assertThat(scales).allSatisfy(scale -> assertThat(scale.priority()).isEqualTo(10));
         ScaleDiscount skuScale = scales.stream()
                 .filter(scale -> scale.targetType() == DiscountTargetType.SKU).findFirst().orElseThrow();
         assertThat(skuScale.tiers()).extracting(ScaleTier::fromQty).containsExactly(12, 24);
@@ -87,6 +88,7 @@ class RepositoryTest extends AbstractIntegrationTest {
         List<Combo> loaded = combos.findByRuleset(arRulesetId());
         assertThat(loaded).hasSize(1);
         assertThat(loaded.get(0).comboPrice()).isEqualByComparingTo("20000.00");
+        assertThat(loaded.get(0).priority()).isEqualTo(20);
         assertThat(loaded.get(0).items()).hasSize(2);
     }
 
@@ -95,6 +97,7 @@ class RepositoryTest extends AbstractIntegrationTest {
         List<Gift> loaded = gifts.findByRuleset(arRulesetId());
         assertThat(loaded).hasSize(3);
         assertThat(loaded).allSatisfy(gift -> assertThat(gift.condition()).isNotNull());
+        assertThat(loaded).allSatisfy(gift -> assertThat(gift.priority()).isEqualTo(5));
     }
 
     @Test

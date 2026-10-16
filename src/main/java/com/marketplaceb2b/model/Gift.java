@@ -10,5 +10,6 @@ public record Gift(
         @NotNull @Valid GiftCondition condition,
         @NotNull Long giftProductId,
         @Positive int giftQty,
-        boolean taxable) {
+        boolean taxable,
+        int priority) {
 }
