@@ -21,7 +21,7 @@ import com.marketplaceb2b.service.exception.IdempotencyConflictException;
 import com.marketplaceb2b.service.exception.InsufficientCreditException;
 import com.marketplaceb2b.service.exception.QuoteExpiredException;
 import com.marketplaceb2b.service.exception.QuoteNotFoundException;
-import com.marketplaceb2b.service.model.OrderConfirmation;
+import com.marketplaceb2b.service.dto.OrderConfirmation;
 import com.marketplaceb2b.persistence.repository.CreditAccountRepository;
 import com.marketplaceb2b.persistence.repository.CreditLedgerRepository;
 import com.marketplaceb2b.persistence.repository.IdempotencyKeyRepository;

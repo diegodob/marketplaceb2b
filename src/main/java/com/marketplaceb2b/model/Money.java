@@ -1,10 +1,7 @@
-package com.marketplaceb2b.service.model;
+package com.marketplaceb2b.model;
 
 import java.math.BigDecimal;
 import java.util.Objects;
-
-import com.marketplaceb2b.model.RoundingMode;
-import com.marketplaceb2b.model.Ruleset;
 
 public record Money(BigDecimal amount, int scale, RoundingMode roundingMode) {
 

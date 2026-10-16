@@ -1,4 +1,4 @@
-package com.marketplaceb2b.service.model;
+package com.marketplaceb2b.service.dto;
 
 import java.math.BigDecimal;
 import java.util.List;
