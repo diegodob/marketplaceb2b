@@ -90,6 +90,21 @@ class RepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void giftRepositoryMapsTheTaxableFlag() {
+        assertThat(gifts.findByRuleset(arRulesetId()))
+                .allSatisfy(gift -> assertThat(gift.taxable()).isFalse());
+
+        long condition = insert("INSERT INTO gift_condition (product_id, family_id, min_qty, min_amount) "
+                + "VALUES (NULL, NULL, NULL, 1000.00)");
+        long giftId = insert("INSERT INTO gift (ruleset_id, condition_id, gift_product_id, gift_qty, taxable) "
+                + "VALUES (?, ?, (SELECT id FROM product WHERE sku = 'AGU-500'), 1, TRUE)", arRulesetId(), condition);
+
+        Gift taxable = gifts.findByRuleset(arRulesetId()).stream()
+                .filter(gift -> gift.id() == giftId).findFirst().orElseThrow();
+        assertThat(taxable.taxable()).isTrue();
+    }
+
+    @Test
     void insertReturningIdReturnsGeneratedKey() {
         long id = access.insertReturningId("INSERT INTO country (code, name) VALUES (:code, :name)",
                 Map.of("code", "T9", "name", "Testland"));

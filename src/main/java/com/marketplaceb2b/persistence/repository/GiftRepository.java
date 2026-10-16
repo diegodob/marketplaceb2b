@@ -19,7 +19,8 @@ public class GiftRepository {
             rs.getLong("ruleset_id"),
             rs.getLong("condition_id"),
             rs.getLong("gift_product_id"),
-            rs.getInt("gift_qty"));
+            rs.getInt("gift_qty"),
+            rs.getBoolean("taxable"));
 
     private static final RowMapper<GiftCondition> CONDITION = (rs, rowNum) -> new GiftCondition(
             rs.getObject("product_id", Long.class),
@@ -35,7 +36,7 @@ public class GiftRepository {
 
     public List<Gift> findByRuleset(long rulesetId) {
         List<GiftRow> rows = access.queryList(
-                "SELECT id, ruleset_id, condition_id, gift_product_id, gift_qty FROM gift "
+                "SELECT id, ruleset_id, condition_id, gift_product_id, gift_qty, taxable FROM gift "
                         + "WHERE ruleset_id = :rulesetId ORDER BY id",
                 Map.of("rulesetId", rulesetId), ROW);
 
@@ -44,11 +45,13 @@ public class GiftRepository {
             GiftCondition condition = access.query(
                     "SELECT product_id, family_id, min_qty, min_amount FROM gift_condition WHERE id = :id",
                     Map.of("id", row.conditionId()), CONDITION);
-            gifts.add(new Gift(row.id(), row.rulesetId(), condition, row.giftProductId(), row.giftQty()));
+            gifts.add(new Gift(row.id(), row.rulesetId(), condition, row.giftProductId(), row.giftQty(),
+                    row.taxable()));
         }
         return gifts;
     }
 
-    private record GiftRow(long id, long rulesetId, long conditionId, long giftProductId, int giftQty) {
+    private record GiftRow(long id, long rulesetId, long conditionId, long giftProductId, int giftQty,
+                           boolean taxable) {
     }
 }
