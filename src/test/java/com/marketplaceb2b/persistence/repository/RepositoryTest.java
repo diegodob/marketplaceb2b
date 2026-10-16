@@ -15,6 +15,7 @@ import com.marketplaceb2b.model.LedgerEntryType;
 import com.marketplaceb2b.model.OutboxDestination;
 import com.marketplaceb2b.model.OutboxEventType;
 import com.marketplaceb2b.model.PaymentMethod;
+import com.marketplaceb2b.model.ProductFamily;
 import com.marketplaceb2b.model.Quote;
 import com.marketplaceb2b.model.SalesOrder;
 import com.marketplaceb2b.persistence.PersistenceAccess;
@@ -38,6 +39,17 @@ class RepositoryTest extends AbstractIntegrationTest {
     private CreditLedgerRepository creditLedger;
     @Autowired
     private OutboxRepository outbox;
+    @Autowired
+    private ProductFamilyRepository productFamilies;
+
+    @Test
+    void productFamilyRepositoryRoundTrips() {
+        long tenant = arTenantId();
+        long id = productFamilies.insert(tenant, unique("Fam"));
+        ProductFamily family = productFamilies.find(tenant, id).orElseThrow();
+        assertThat(family.tenantId()).isEqualTo(tenant);
+        assertThat(productFamilies.find(tenant + 999, id)).isEmpty();
+    }
 
     @Test
     void insertReturningIdReturnsGeneratedKey() {
