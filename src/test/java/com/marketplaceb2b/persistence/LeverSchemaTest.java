@@ -16,6 +16,11 @@ class LeverSchemaTest extends AbstractDatabaseTest {
                 unique("Combo"));
     }
 
+    private long newScaleFamily(long rulesetId, long familyId) {
+        return insert("INSERT INTO scale_discount (ruleset_id, target_type, product_id, family_id) VALUES (?, 'FAMILY', NULL, ?)",
+                rulesetId, familyId);
+    }
+
     @Test
     void scaleAcceptsSkuTarget() {
         long tenant = newTenant(unique("Tenant"));
@@ -136,5 +141,73 @@ class LeverSchemaTest extends AbstractDatabaseTest {
                 product);
         assertRejected("INSERT INTO gift (ruleset_id, condition_id, gift_product_id, gift_qty) VALUES (?, ?, ?, 0)",
                 ruleset, condition, product);
+    }
+
+    @Test
+    void scaleAcceptsFamilyTarget() {
+        long tenant = newTenant(unique("Tenant"));
+        long ruleset = newRuleset(tenant);
+        long family = insert("INSERT INTO product_family (tenant_id, name) VALUES (?, ?)", tenant, unique("Fam"));
+        assertThatCode(() -> newScaleFamily(ruleset, family)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void tierAcceptsValidValues() {
+        long tenant = newTenant(unique("Tenant"));
+        long scale = newScale(newRuleset(tenant), newProduct(tenant, unique("SKU")));
+        assertThatCode(() -> {
+            run("INSERT INTO scale_tier (scale_discount_id, from_qty, percentage) VALUES (?, 1, 0.0)", scale);
+            run("INSERT INTO scale_tier (scale_discount_id, from_qty, percentage) VALUES (?, 10, 100.0)", scale);
+        }).doesNotThrowAnyException();
+    }
+
+    @Test
+    void comboAcceptsValid() {
+        long ruleset = newRuleset(newTenant(unique("Tenant")));
+        assertThatCode(() -> newCombo(ruleset)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void comboItemAcceptsValid() {
+        long tenant = newTenant(unique("Tenant"));
+        long combo = newCombo(newRuleset(tenant));
+        long product = newProduct(tenant, unique("SKU"));
+        assertThatCode(() -> run("INSERT INTO combo_item (combo_id, product_id, min_qty) VALUES (?, ?, 6)", combo, product))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    void giftConditionAcceptsQuantityOfProduct() {
+        long tenant = newTenant(unique("Tenant"));
+        long product = newProduct(tenant, unique("SKU"));
+        assertThatCode(() -> run("INSERT INTO gift_condition (product_id, family_id, min_qty, min_amount) VALUES (?, NULL, 12, NULL)",
+                product)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void giftConditionAcceptsQuantityOfFamily() {
+        long tenant = newTenant(unique("Tenant"));
+        long family = insert("INSERT INTO product_family (tenant_id, name) VALUES (?, ?)", tenant, unique("Fam"));
+        assertThatCode(() -> run("INSERT INTO gift_condition (product_id, family_id, min_qty, min_amount) VALUES (NULL, ?, 12, NULL)",
+                family)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void giftConditionAcceptsQuantityAndAmount() {
+        long tenant = newTenant(unique("Tenant"));
+        long product = newProduct(tenant, unique("SKU"));
+        assertThatCode(() -> run("INSERT INTO gift_condition (product_id, family_id, min_qty, min_amount) VALUES (?, NULL, 12, 1000.00)",
+                product)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void giftAcceptsValid() {
+        long tenant = newTenant(unique("Tenant"));
+        long ruleset = newRuleset(tenant);
+        long product = newProduct(tenant, unique("SKU"));
+        long condition = insert("INSERT INTO gift_condition (product_id, family_id, min_qty, min_amount) VALUES (?, NULL, 5, NULL)",
+                product);
+        assertThatCode(() -> run("INSERT INTO gift (ruleset_id, condition_id, gift_product_id, gift_qty) VALUES (?, ?, ?, 1)",
+                ruleset, condition, product)).doesNotThrowAnyException();
     }
 }
