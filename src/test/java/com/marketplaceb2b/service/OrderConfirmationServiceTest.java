@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 
-import com.marketplaceb2b.service.dto.OrderConfirmation;
+import com.marketplaceb2b.dto.OrderConfirmation;
 import com.marketplaceb2b.service.exception.IdempotencyConflictException;
 import com.marketplaceb2b.service.exception.InsufficientCreditException;
 import com.marketplaceb2b.service.exception.QuoteExpiredException;

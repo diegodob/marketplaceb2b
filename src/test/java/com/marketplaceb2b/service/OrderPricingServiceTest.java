@@ -8,10 +8,10 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.marketplaceb2b.service.dto.Cart;
-import com.marketplaceb2b.service.dto.CartLine;
-import com.marketplaceb2b.service.dto.LineBreakdown;
-import com.marketplaceb2b.service.dto.PriceBreakdown;
+import com.marketplaceb2b.dto.Cart;
+import com.marketplaceb2b.dto.CartLine;
+import com.marketplaceb2b.dto.LineBreakdown;
+import com.marketplaceb2b.dto.PriceBreakdown;
 import com.marketplaceb2b.service.exception.MissingPriceException;
 import com.marketplaceb2b.service.exception.MissingTaxRateException;
 import com.marketplaceb2b.service.exception.NoCurrentRulesetException;

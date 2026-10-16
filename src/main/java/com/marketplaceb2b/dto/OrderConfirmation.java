@@ -1,4 +1,4 @@
-package com.marketplaceb2b.service.dto;
+package com.marketplaceb2b.dto;
 
 public record OrderConfirmation(long orderId, String publicNumber, boolean replayed) {
 
