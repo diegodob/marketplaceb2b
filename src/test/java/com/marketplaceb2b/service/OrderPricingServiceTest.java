@@ -28,19 +28,19 @@ class OrderPricingServiceTest extends AbstractIntegrationTest {
 
     @Test
     void pricesASeededCart() {
-        Cart cart = new Cart(arTenantId(), arCustomerId(), paymentMethodId("CASH"), List.of(
+        Cart cart = new Cart(gtTenantId(), gtCustomerId(), paymentMethodId("CASH"), List.of(
                 new CartLine(productId("GAS-500"), 10),
-                new CartLine(productId("YER-1KG"), 4),
+                new CartLine(productId("LEC-1L"), 4),
                 new CartLine(productId("AGU-500"), 6)));
 
         PriceBreakdown breakdown = service.price(cart);
 
-        assertThat(breakdown.currency()).isEqualTo("ARS");
+        assertThat(breakdown.currency()).isEqualTo("GTQ");
         assertThat(breakdown.lines()).hasSize(3);
         assertThat(breakdown.grossSubtotal()).isEqualByComparingTo("79000.00");
-        assertThat(breakdown.totalTax()).isEqualByComparingTo("14070.00");
+        assertThat(breakdown.totalTax()).isEqualByComparingTo("6600.00");
         assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("79000.00");
-        assertThat(breakdown.total()).isEqualByComparingTo("93070.00");
+        assertThat(breakdown.total()).isEqualByComparingTo("85600.00");
         assertThat(breakdown.discounts()).isEmpty();
         assertThat(breakdown.gifts()).isEmpty();
         assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("0.00");
@@ -57,8 +57,8 @@ class OrderPricingServiceTest extends AbstractIntegrationTest {
     @Test
     void failsWhenAProductHasNoPrice() {
         long product = insert("INSERT INTO product (tenant_id, sku, name) VALUES (?, ?, 'No price')",
-                arTenantId(), unique("SKU"));
-        Cart cart = new Cart(arTenantId(), null, null, List.of(new CartLine(product, 1)));
+                gtTenantId(), unique("SKU"));
+        Cart cart = new Cart(gtTenantId(), null, null, List.of(new CartLine(product, 1)));
 
         assertThatThrownBy(() -> service.price(cart)).isInstanceOf(MissingPriceException.class);
     }
@@ -67,10 +67,10 @@ class OrderPricingServiceTest extends AbstractIntegrationTest {
     void failsWhenACategoryHasNoRate() {
         long category = insert("INSERT INTO tax_category (code, name) VALUES (?, 'No rate')", unique("CAT"));
         long product = insert("INSERT INTO product (tenant_id, sku, name) VALUES (?, ?, 'No rate')",
-                arTenantId(), unique("SKU"));
+                gtTenantId(), unique("SKU"));
         insert("INSERT INTO product_price (ruleset_id, product_id, tax_category_id, unit_price) VALUES (?, ?, ?, 10.0000)",
-                arRulesetId(), product, category);
-        Cart cart = new Cart(arTenantId(), null, null, List.of(new CartLine(product, 1)));
+                gtRulesetId(), product, category);
+        Cart cart = new Cart(gtTenantId(), null, null, List.of(new CartLine(product, 1)));
 
         assertThatThrownBy(() -> service.price(cart)).isInstanceOf(MissingTaxRateException.class);
     }
@@ -79,12 +79,12 @@ class OrderPricingServiceTest extends AbstractIntegrationTest {
     void roundsEachLineToTheCurrencyScale() {
         long category = insert("INSERT INTO tax_category (code, name) VALUES (?, 'Round')", unique("CAT"));
         insert("INSERT INTO tax_rate (ruleset_id, tax_category_id, rate) VALUES (?, ?, 21.0000)",
-                arRulesetId(), category);
+                gtRulesetId(), category);
         long product = insert("INSERT INTO product (tenant_id, sku, name) VALUES (?, ?, 'Round')",
-                arTenantId(), unique("SKU"));
+                gtTenantId(), unique("SKU"));
         insert("INSERT INTO product_price (ruleset_id, product_id, tax_category_id, unit_price) VALUES (?, ?, ?, 3.3350)",
-                arRulesetId(), product, category);
-        Cart cart = new Cart(arTenantId(), null, null, List.of(new CartLine(product, 3)));
+                gtRulesetId(), product, category);
+        Cart cart = new Cart(gtTenantId(), null, null, List.of(new CartLine(product, 3)));
 
         PriceBreakdown breakdown = service.price(cart);
 

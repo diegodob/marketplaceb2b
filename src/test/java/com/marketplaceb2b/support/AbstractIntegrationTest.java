@@ -41,21 +41,21 @@ public abstract class AbstractIntegrationTest {
         return key == null ? 0L : key.longValue();
     }
 
-    protected long arTenantId() {
-        return jdbc.queryForObject("SELECT id FROM tenant WHERE name = 'Bebidas AR'", Long.class);
+    protected long gtTenantId() {
+        return jdbc.queryForObject("SELECT id FROM tenant WHERE name = 'Bebidas GT'", Long.class);
     }
 
     protected long newTenant(String name) {
-        return insert("INSERT INTO tenant (name, country_id) VALUES (?, (SELECT id FROM country WHERE code = 'AR'))",
+        return insert("INSERT INTO tenant (name, country_id) VALUES (?, (SELECT id FROM country WHERE code = 'GT'))",
                 name);
     }
 
-    protected long arCustomerId() {
+    protected long gtCustomerId() {
         return jdbc.queryForObject("SELECT id FROM customer WHERE name = 'Cliente 12'", Long.class);
     }
 
-    protected long arRulesetId() {
-        return jdbc.queryForObject("SELECT id FROM ruleset WHERE version = 'AR-2026-10-01.1'", Long.class);
+    protected long gtRulesetId() {
+        return jdbc.queryForObject("SELECT id FROM ruleset WHERE version = 'GT-2026-10-01.1'", Long.class);
     }
 
     protected long paymentMethodId(String code) {
@@ -63,7 +63,7 @@ public abstract class AbstractIntegrationTest {
     }
 
     protected long newQuote(String total, Instant expiresAt) {
-        return newQuote(arTenantId(), arCustomerId(), arRulesetId(), paymentMethodId("CREDIT"), total, expiresAt);
+        return newQuote(gtTenantId(), gtCustomerId(), gtRulesetId(), paymentMethodId("CREDIT"), total, expiresAt);
     }
 
     protected long newQuote(long tenantId, long customerId, long rulesetId, long paymentMethodId, String total,

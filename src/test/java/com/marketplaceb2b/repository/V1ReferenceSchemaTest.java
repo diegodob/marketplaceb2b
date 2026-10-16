@@ -14,15 +14,15 @@ class V1ReferenceSchemaTest extends AbstractDatabaseTest {
 
     @Test
     void rejectsDuplicateFiscalIdTypeCodePerCountry() {
-        long country = arCountryId();
-        run("INSERT INTO fiscal_id_type (country_id, code, name) VALUES (?, 'NIT', 'NIT')", country);
-        assertRejected("INSERT INTO fiscal_id_type (country_id, code, name) VALUES (?, 'NIT', 'Other')", country);
+        long country = gtCountryId();
+        run("INSERT INTO fiscal_id_type (country_id, code, name) VALUES (?, 'TESTID', 'Test id')", country);
+        assertRejected("INSERT INTO fiscal_id_type (country_id, code, name) VALUES (?, 'TESTID', 'Other')", country);
     }
 
     @Test
     void rejectsDuplicateTenantName() {
-        run("INSERT INTO tenant (name, country_id) VALUES ('Tenant Dup', ?)", arCountryId());
-        assertRejected("INSERT INTO tenant (name, country_id) VALUES ('Tenant Dup', ?)", arCountryId());
+        run("INSERT INTO tenant (name, country_id) VALUES ('Tenant Dup', ?)", gtCountryId());
+        assertRejected("INSERT INTO tenant (name, country_id) VALUES ('Tenant Dup', ?)", gtCountryId());
     }
 
     @Test
@@ -30,7 +30,7 @@ class V1ReferenceSchemaTest extends AbstractDatabaseTest {
         long tenant = newTenant(unique("Tenant"));
         newRuleset(tenant, "V1", ts("2026-01-01 00:00:00"));
         assertRejected("INSERT INTO ruleset (tenant_id, version, currency, currency_scale, rounding_mode, effective_from) "
-                + "VALUES (?, 'V1', 'ARS', 2, 'HALF_UP', ?)", tenant, ts("2026-02-01 00:00:00"));
+                + "VALUES (?, 'V1', 'GTQ', 2, 'HALF_UP', ?)", tenant, ts("2026-02-01 00:00:00"));
     }
 
     @Test
@@ -38,7 +38,7 @@ class V1ReferenceSchemaTest extends AbstractDatabaseTest {
         long tenant = newTenant(unique("Tenant"));
         newRuleset(tenant, "V1", ts("2026-01-01 00:00:00"));
         assertRejected("INSERT INTO ruleset (tenant_id, version, currency, currency_scale, rounding_mode, effective_from) "
-                + "VALUES (?, 'V2', 'ARS', 2, 'HALF_UP', ?)", tenant, ts("2026-01-01 00:00:00"));
+                + "VALUES (?, 'V2', 'GTQ', 2, 'HALF_UP', ?)", tenant, ts("2026-01-01 00:00:00"));
     }
 
     @Test

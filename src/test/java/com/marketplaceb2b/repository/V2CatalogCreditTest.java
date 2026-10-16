@@ -67,7 +67,7 @@ class V2CatalogCreditTest extends AbstractDatabaseTest {
     void rejectsCustomerWithMissingFiscalId() {
         long tenant = newTenant(unique("Tenant"));
         assertRejected("INSERT INTO customer (tenant_id, name, fiscal_id, fiscal_id_type_id) VALUES (?, 'C', NULL, ?)",
-                tenant, arFiscalIdTypeId());
+                tenant, gtFiscalIdTypeId());
     }
 
     @Test
@@ -75,7 +75,7 @@ class V2CatalogCreditTest extends AbstractDatabaseTest {
         long tenant = newTenant(unique("Tenant"));
         long customer = newCustomer(tenant, unique("F"));
         newCreditAccount(customer, "100", "50");
-        assertRejected("INSERT INTO credit_account (customer_id, currency, credit_limit, available) VALUES (?, 'ARS', 100, 50)",
+        assertRejected("INSERT INTO credit_account (customer_id, currency, credit_limit, available) VALUES (?, 'GTQ', 100, 50)",
                 customer);
     }
 
@@ -83,7 +83,7 @@ class V2CatalogCreditTest extends AbstractDatabaseTest {
     void rejectsNegativeAvailable() {
         long tenant = newTenant(unique("Tenant"));
         long customer = newCustomer(tenant, unique("F"));
-        assertRejected("INSERT INTO credit_account (customer_id, currency, credit_limit, available) VALUES (?, 'ARS', 100, -1)",
+        assertRejected("INSERT INTO credit_account (customer_id, currency, credit_limit, available) VALUES (?, 'GTQ', 100, -1)",
                 customer);
     }
 
@@ -91,7 +91,7 @@ class V2CatalogCreditTest extends AbstractDatabaseTest {
     void rejectsAvailableAboveLimit() {
         long tenant = newTenant(unique("Tenant"));
         long customer = newCustomer(tenant, unique("F"));
-        assertRejected("INSERT INTO credit_account (customer_id, currency, credit_limit, available) VALUES (?, 'ARS', 100, 150)",
+        assertRejected("INSERT INTO credit_account (customer_id, currency, credit_limit, available) VALUES (?, 'GTQ', 100, 150)",
                 customer);
     }
 }

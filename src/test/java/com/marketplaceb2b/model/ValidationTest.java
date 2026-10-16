@@ -44,7 +44,7 @@ class ValidationTest {
 
     @Test
     void detectsCreditAvailableOutOfBounds() {
-        CreditAccount account = new CreditAccount(1L, 2L, "ARS",
+        CreditAccount account = new CreditAccount(1L, 2L, "GTQ",
                 new BigDecimal("100"), new BigDecimal("150"));
         assertThat(validator.validate(account)).isNotEmpty();
     }
@@ -58,14 +58,14 @@ class ValidationTest {
 
     @Test
     void acceptsValidInstances() {
-        CreditAccount account = new CreditAccount(1L, 2L, "ARS",
+        CreditAccount account = new CreditAccount(1L, 2L, "GTQ",
                 new BigDecimal("500000.00"), new BigDecimal("300000.00"));
         assertThat(validator.validate(account)).isEmpty();
     }
 
     @Test
     void detectsNonAlphanumericFiscalId() {
-        Customer customer = new Customer(1L, 2L, "Tienda", "CUIT-20", 1L);
+        Customer customer = new Customer(1L, 2L, "Tienda", "NIT-20", 1L);
         assertThat(validator.validate(customer)).isNotEmpty();
     }
 

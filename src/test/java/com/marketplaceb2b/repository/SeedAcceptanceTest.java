@@ -15,24 +15,24 @@ class SeedAcceptanceTest extends AbstractDatabaseTest {
 
     @Test
     void confirmedOrderMatchesTheQuotedTotal() {
-        long tenant = id("SELECT id FROM tenant WHERE name = 'Bebidas AR'");
-        long ruleset = id("SELECT id FROM ruleset WHERE version = 'AR-2026-10-01.1'");
+        long tenant = id("SELECT id FROM tenant WHERE name = 'Bebidas GT'");
+        long ruleset = id("SELECT id FROM ruleset WHERE version = 'GT-2026-10-01.1'");
         long customer = id("SELECT id FROM customer WHERE name = 'Cliente 12' AND tenant_id = " + tenant);
         long credit = id("SELECT id FROM payment_method WHERE code = 'CREDIT' AND tenant_id = " + tenant);
         long gas = id("SELECT id FROM product WHERE sku = 'GAS-500' AND tenant_id = " + tenant);
-        long yer = id("SELECT id FROM product WHERE sku = 'YER-1KG' AND tenant_id = " + tenant);
+        long lec = id("SELECT id FROM product WHERE sku = 'LEC-1L' AND tenant_id = " + tenant);
         long agu = id("SELECT id FROM product WHERE sku = 'AGU-500' AND tenant_id = " + tenant);
 
-        long quote = newQuote(tenant, customer, ruleset, credit, "93070.00");
-        newQuoteLine(quote, gas, 10, "4000.0000", "40000.00", "21.0000", "8400.00");
-        newQuoteLine(quote, yer, 4, "6000.0000", "24000.00", "10.5000", "2520.00");
-        newQuoteLine(quote, agu, 6, "2500.0000", "15000.00", "21.0000", "3150.00");
+        long quote = newQuote(tenant, customer, ruleset, credit, "85600.00");
+        newQuoteLine(quote, gas, 10, "4000.0000", "40000.00", "12.0000", "4800.00");
+        newQuoteLine(quote, lec, 4, "6000.0000", "24000.00", "0.0000", "0.00");
+        newQuoteLine(quote, agu, 6, "2500.0000", "15000.00", "12.0000", "1800.00");
 
         BigDecimal sum = jdbc.queryForObject(
                 "SELECT SUM(taxable_base + tax) FROM quote_line WHERE quote_id = ?", BigDecimal.class, quote);
         BigDecimal total = jdbc.queryForObject("SELECT total FROM quote WHERE id = ?", BigDecimal.class, quote);
 
-        assertThat(sum).isEqualByComparingTo("93070.00");
+        assertThat(sum).isEqualByComparingTo("85600.00");
         assertThat(total).isEqualByComparingTo(sum);
 
         List<BigDecimal> storedAmounts = jdbc.query(
@@ -46,12 +46,12 @@ class SeedAcceptanceTest extends AbstractDatabaseTest {
 
     @Test
     void confirmedOrderEnqueuesTwoPendingEffects() {
-        long tenant = id("SELECT id FROM tenant WHERE name = 'Bebidas AR'");
-        long ruleset = id("SELECT id FROM ruleset WHERE version = 'AR-2026-10-01.1'");
+        long tenant = id("SELECT id FROM tenant WHERE name = 'Bebidas GT'");
+        long ruleset = id("SELECT id FROM ruleset WHERE version = 'GT-2026-10-01.1'");
         long customer = id("SELECT id FROM customer WHERE name = 'Cliente 12' AND tenant_id = " + tenant);
         long credit = id("SELECT id FROM payment_method WHERE code = 'CREDIT' AND tenant_id = " + tenant);
 
-        long order = newSalesOrder(tenant, customer, newQuote(tenant, customer, ruleset, credit, "93070.00"));
+        long order = newSalesOrder(tenant, customer, newQuote(tenant, customer, ruleset, credit, "85600.00"));
         newOutbox(order, "PUSH", "ORDER_CONFIRMED", "PENDING");
         newOutbox(order, "ERP", "ORDER_CONFIRMED", "PENDING");
 
@@ -63,12 +63,12 @@ class SeedAcceptanceTest extends AbstractDatabaseTest {
 
     @Test
     void replayingTheConfirmationKeyIsRejected() {
-        long tenant = id("SELECT id FROM tenant WHERE name = 'Bebidas AR'");
-        long ruleset = id("SELECT id FROM ruleset WHERE version = 'AR-2026-10-01.1'");
+        long tenant = id("SELECT id FROM tenant WHERE name = 'Bebidas GT'");
+        long ruleset = id("SELECT id FROM ruleset WHERE version = 'GT-2026-10-01.1'");
         long customer = id("SELECT id FROM customer WHERE name = 'Cliente 12' AND tenant_id = " + tenant);
         long credit = id("SELECT id FROM payment_method WHERE code = 'CREDIT' AND tenant_id = " + tenant);
 
-        long order = newSalesOrder(tenant, customer, newQuote(tenant, customer, ruleset, credit, "93070.00"));
+        long order = newSalesOrder(tenant, customer, newQuote(tenant, customer, ruleset, credit, "85600.00"));
         newIdempotencyKey(customer, "IDEM-SEED", order);
 
         assertRejected("INSERT INTO idempotency_key (customer_id, idem_key, sales_order_id) VALUES (?, 'IDEM-SEED', ?)",
@@ -85,14 +85,14 @@ class SeedAcceptanceTest extends AbstractDatabaseTest {
 
     @Test
     void frozenQuoteValuesSurviveALaterPriceChange() {
-        long tenant = id("SELECT id FROM tenant WHERE name = 'Bebidas AR'");
-        long ruleset = id("SELECT id FROM ruleset WHERE version = 'AR-2026-10-01.1'");
+        long tenant = id("SELECT id FROM tenant WHERE name = 'Bebidas GT'");
+        long ruleset = id("SELECT id FROM ruleset WHERE version = 'GT-2026-10-01.1'");
         long customer = id("SELECT id FROM customer WHERE name = 'Cliente 12' AND tenant_id = " + tenant);
         long payment = id("SELECT id FROM payment_method WHERE code = 'CASH' AND tenant_id = " + tenant);
         long product = id("SELECT id FROM product WHERE sku = 'GAS-500' AND tenant_id = " + tenant);
 
-        long quote = newQuote(tenant, customer, ruleset, payment, "93070.00");
-        newQuoteLine(quote, product, 10, "4000.0000", "40000.00", "21.0000", "8400.00");
+        long quote = newQuote(tenant, customer, ruleset, payment, "44800.00");
+        newQuoteLine(quote, product, 10, "4000.0000", "40000.00", "12.0000", "4800.00");
 
         run("UPDATE product_price SET unit_price = 9999.0000 WHERE ruleset_id = ? AND product_id = ?",
                 ruleset, product);
@@ -100,6 +100,6 @@ class SeedAcceptanceTest extends AbstractDatabaseTest {
         assertThat(jdbc.queryForObject("SELECT unit_price FROM quote_line WHERE quote_id = ?", BigDecimal.class, quote))
                 .isEqualByComparingTo("4000.0000");
         assertThat(jdbc.queryForObject("SELECT total FROM quote WHERE id = ?", BigDecimal.class, quote))
-                .isEqualByComparingTo("93070.00");
+                .isEqualByComparingTo("44800.00");
     }
 }

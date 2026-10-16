@@ -38,9 +38,9 @@ class OrderConfirmationAtomicityTest extends AbstractIntegrationTest {
 
     @Test
     void partialFailureLeavesNothingBehind() {
-        long tenant = arTenantId();
-        long customer = arCustomerId();
-        long quote = newQuote(tenant, customer, arRulesetId(), paymentMethodId("CREDIT"), "1000.00",
+        long tenant = gtTenantId();
+        long customer = gtCustomerId();
+        long quote = newQuote(tenant, customer, gtRulesetId(), paymentMethodId("CREDIT"), "1000.00",
                 Instant.now().plusSeconds(3600));
 
         assertThatThrownBy(() -> service.confirm(tenant, quote, unique("KEY")))

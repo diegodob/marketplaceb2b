@@ -23,10 +23,10 @@ class OrderConfirmationServiceTest extends AbstractIntegrationTest {
 
     @Test
     void createsOrderAndEnqueuesEventsForNonCreditMethod() {
-        long tenant = arTenantId();
-        long customer = arCustomerId();
+        long tenant = gtTenantId();
+        long customer = gtCustomerId();
         BigDecimal availableBefore = available(customer);
-        long quote = newQuote(tenant, customer, arRulesetId(), paymentMethodId("CASH"), "1000.00",
+        long quote = newQuote(tenant, customer, gtRulesetId(), paymentMethodId("CASH"), "1000.00",
                 Instant.now().plusSeconds(3600));
 
         OrderConfirmation result = service.confirm(tenant, quote, unique("KEY"));
@@ -42,26 +42,26 @@ class OrderConfirmationServiceTest extends AbstractIntegrationTest {
 
     @Test
     void consumesCreditWhenMethodUsesCredit() {
-        long tenant = arTenantId();
-        long customer = arCustomerId();
+        long tenant = gtTenantId();
+        long customer = gtCustomerId();
         BigDecimal before = available(customer);
-        long quote = newQuote(tenant, customer, arRulesetId(), paymentMethodId("CREDIT"), "93070.00",
+        long quote = newQuote(tenant, customer, gtRulesetId(), paymentMethodId("CREDIT"), "85600.00",
                 Instant.now().plusSeconds(3600));
 
         OrderConfirmation result = service.confirm(tenant, quote, unique("KEY"));
 
-        assertThat(before.subtract(available(customer))).isEqualByComparingTo("93070.00");
+        assertThat(before.subtract(available(customer))).isEqualByComparingTo("85600.00");
         BigDecimal amount = jdbc.queryForObject(
                 "SELECT amount FROM credit_ledger WHERE sales_order_id = ? AND entry_type = 'CONSUMPTION'",
                 BigDecimal.class, result.orderId());
-        assertThat(amount).isEqualByComparingTo("-93070.00");
+        assertThat(amount).isEqualByComparingTo("-85600.00");
     }
 
     @Test
     void replayReturnsTheSameOrderWithoutChanges() {
-        long tenant = arTenantId();
-        long customer = arCustomerId();
-        long quote = newQuote(tenant, customer, arRulesetId(), paymentMethodId("CREDIT"), "1000.00",
+        long tenant = gtTenantId();
+        long customer = gtCustomerId();
+        long quote = newQuote(tenant, customer, gtRulesetId(), paymentMethodId("CREDIT"), "1000.00",
                 Instant.now().plusSeconds(3600));
         String key = unique("KEY");
 
@@ -79,11 +79,11 @@ class OrderConfirmationServiceTest extends AbstractIntegrationTest {
 
     @Test
     void sameKeyWithDifferentQuoteIsRejected() {
-        long tenant = arTenantId();
-        long customer = arCustomerId();
-        long firstQuote = newQuote(tenant, customer, arRulesetId(), paymentMethodId("CREDIT"), "100.00",
+        long tenant = gtTenantId();
+        long customer = gtCustomerId();
+        long firstQuote = newQuote(tenant, customer, gtRulesetId(), paymentMethodId("CREDIT"), "100.00",
                 Instant.now().plusSeconds(3600));
-        long secondQuote = newQuote(tenant, customer, arRulesetId(), paymentMethodId("CREDIT"), "200.00",
+        long secondQuote = newQuote(tenant, customer, gtRulesetId(), paymentMethodId("CREDIT"), "200.00",
                 Instant.now().plusSeconds(3600));
         String key = unique("KEY");
 
@@ -94,8 +94,8 @@ class OrderConfirmationServiceTest extends AbstractIntegrationTest {
 
     @Test
     void expiredQuoteIsRejected() {
-        long tenant = arTenantId();
-        long quote = newQuote(tenant, arCustomerId(), arRulesetId(), paymentMethodId("CASH"), "100.00",
+        long tenant = gtTenantId();
+        long quote = newQuote(tenant, gtCustomerId(), gtRulesetId(), paymentMethodId("CASH"), "100.00",
                 Instant.now().minusSeconds(60));
 
         assertThatThrownBy(() -> service.confirm(tenant, quote, unique("KEY")))
@@ -105,10 +105,10 @@ class OrderConfirmationServiceTest extends AbstractIntegrationTest {
 
     @Test
     void insufficientCreditIsRejectedWithoutLeavingAnOrder() {
-        long tenant = arTenantId();
-        long customer = arCustomerId();
+        long tenant = gtTenantId();
+        long customer = gtCustomerId();
         BigDecimal before = available(customer);
-        long quote = newQuote(tenant, customer, arRulesetId(), paymentMethodId("CREDIT"), "400000.00",
+        long quote = newQuote(tenant, customer, gtRulesetId(), paymentMethodId("CREDIT"), "400000.00",
                 Instant.now().plusSeconds(3600));
 
         assertThatThrownBy(() -> service.confirm(tenant, quote, unique("KEY")))
@@ -119,9 +119,9 @@ class OrderConfirmationServiceTest extends AbstractIntegrationTest {
 
     @Test
     void aQuoteCannotProduceTwoOrders() {
-        long tenant = arTenantId();
-        long customer = arCustomerId();
-        long quote = newQuote(tenant, customer, arRulesetId(), paymentMethodId("CASH"), "100.00",
+        long tenant = gtTenantId();
+        long customer = gtCustomerId();
+        long quote = newQuote(tenant, customer, gtRulesetId(), paymentMethodId("CASH"), "100.00",
                 Instant.now().plusSeconds(3600));
 
         service.confirm(tenant, quote, unique("KEY"));
@@ -131,9 +131,9 @@ class OrderConfirmationServiceTest extends AbstractIntegrationTest {
 
     @Test
     void changingPricesAfterConfirmationDoesNotChangeTheOrder() {
-        long tenant = arTenantId();
-        long customer = arCustomerId();
-        long quote = newQuote(tenant, customer, arRulesetId(), paymentMethodId("CASH"), "93070.00",
+        long tenant = gtTenantId();
+        long customer = gtCustomerId();
+        long quote = newQuote(tenant, customer, gtRulesetId(), paymentMethodId("CASH"), "85600.00",
                 Instant.now().plusSeconds(3600));
 
         OrderConfirmation confirmation = service.confirm(tenant, quote, unique("KEY"));
@@ -142,7 +142,7 @@ class OrderConfirmationServiceTest extends AbstractIntegrationTest {
                 + "WHERE product_id = (SELECT id FROM product WHERE sku = 'GAS-500')");
 
         BigDecimal orderAmount = jdbc.queryForObject("SELECT total FROM quote WHERE id = ?", BigDecimal.class, quote);
-        assertThat(orderAmount).isEqualByComparingTo("93070.00");
+        assertThat(orderAmount).isEqualByComparingTo("85600.00");
         assertThat(count("SELECT COUNT(*) FROM sales_order WHERE id = ?", confirmation.orderId())).isEqualTo(1);
     }
 
