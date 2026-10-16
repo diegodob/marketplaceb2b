@@ -2,36 +2,33 @@
 
 ## Context
 
-`pricing-core` computes gross, tax and total with no levers. The lever tables and their repositories exist. This change adds the engine's lever **pipeline** and the **combo** strategy. See proposal.md and `specs/order-pricing/spec.md`.
+`pricing-core` computes gross, tax and total with no levers. The lever tables, their repositories and a `priority` per lever (`lever-priority`) exist. This change adds the engine's lever **pipeline** and the **combo** strategy. See proposal.md and `specs/order-pricing/spec.md`.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- A strategy-based, exclusive, priority-ordered pipeline so levers can be added without touching the engine.
+- Apply the applicable levers in a fixed, explicit order driven by each lever's `priority` (the distributor decides, not an inference), exclusive over consumed units.
 - The combo step, predictable and documented (never minimizing the total).
 
 **Non-Goals:**
-- The scale and gift strategies, quote creation, the credit-fits check.
-- A per-lever database priority (see Open Questions).
+- The scale and gift strategies' own rules (their changes); quote creation; the credit-fits check.
 
 ## Decisions
 
-**Pipeline over procedural steps.** A `LeverStrategy` interface (`apply(PricingContext)`) and a `PricingPipeline` that holds an **ordered list** of strategies and runs them in that order. Adding a lever is adding a strategy; the precedence is the list order (configuration), not scattered code. Alternative: procedural steps in the service — rejected: rigid and hard to reorder or test in isolation.
+**Pipeline of strategies, priority-driven.** A `LeverStrategy` per lever type computes that lever's effect on the pricing context. `PricingPipeline` collects the ruleset's **applicable** levers (each type decides what "applicable" means), orders them by **descending `priority`** (ties by `id`), and applies each through its type's strategy. Adding a lever type is adding a strategy. Alternative: type-ordered procedural steps — rejected: rigid and not data-driven.
 
-**Exclusivity via consumed units.** `PricingContext` tracks, per product, the line value and the units already discounted (`consumedQty`). A strategy only discounts the **remaining** units and marks what it consumed. This makes "the combo excludes the scale" automatic, without either strategy knowing the other.
+**Exclusivity via consumed units.** Each applied lever **consumes** the units it discounts (per product). A lower-priority lever only sees the remaining units, so "the combo excludes the scale" is automatic and no lever needs to know the others.
 
-**PricingContext.** Carries the cart, the ruleset (currency scale and rounding mode), the loaded prices/rates, and the mutable accumulators `discounts` (list of `DiscountBreakdown`), `gifts` (list of `GiftBreakdown`) and the per-product line value + consumed units. `OrderPricingService.price(cart)` builds it, runs the pipeline, then computes the taxable base from the (reduced) line values and the tax on top.
+**PricingContext.** Carries the cart, the ruleset (currency scale and rounding mode), the loaded prices/rates, and the mutable accumulators `discounts` (list of `DiscountBreakdown`), `gifts` (list of `GiftBreakdown`) and, per product, the remaining line value and consumed units. `OrderPricingService.price(cart)` builds it, runs the pipeline, then computes the taxable base from the reduced values and the tax on top.
 
-**Combo strategy.** For the ruleset's combos, an **applicable** combo is one whose every item's cart quantity reaches its minimum. Among the applicable combos the engine picks one by a fixed, documented rule — the combo covering the **most units**, ties broken by combo id — never by minimizing the total. The chosen combo covers, per item, `min(minQty, remaining units)` at the combo price: the covered units' list value is replaced by the combo price, and the **combo discount entry** carries `(covered list value − combo price)` with its origin. Units above the minimum keep the regular price; the covered units are marked consumed so a later step skips them.
-
-**Priority source.** Cross-lever precedence is the pipeline's ordered strategy list (combo → scale → gift), configured where the pipeline is built. A per-lever `priority` column in the database is deferred (Open Questions).
+**Combo strategy.** A combo is **applicable** when every item's cart quantity reaches its minimum. When applied (in priority order), it covers, per item, `min(minQty, remaining units)` at the combo price: the covered units' list value is replaced by the combo price, and the **combo discount entry** carries `(covered list value − combo price)` with its origin. Units above the minimum keep the regular price; the covered units are consumed. If several combos apply, the higher `priority` runs first and a later combo only sees the units the earlier ones left.
 
 ## Risks / Trade-offs
 
 - **Prorating the combo price across its items** → the covered units' value is set to the combo price, distributed across items by their list-value share, so each line keeps a base. Documented; reused by the tax step.
-- **Combos never minimize the total** → the buyer may not get the theoretical best price, but the result is predictable and auditable (the business priority).
+- **The engine never minimizes the total** → the buyer may not get the theoretical best price, but the result is predictable and auditable; the distributor controls the order via `priority`.
 - **Pipeline adds indirection** → small; each strategy is independently testable, and the engine keeps its current tests.
 
 ## Open Questions
 
-- Add a per-lever `priority` column (schema) so precedence is data-driven per tenant, or keep the pipeline order as configuration?
+- None.

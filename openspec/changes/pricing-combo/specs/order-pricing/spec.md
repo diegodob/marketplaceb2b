@@ -4,21 +4,21 @@
 
 ### Requirement: Pricing pipeline
 
-The engine SHALL apply the commercial levers through a pipeline of strategies run in a fixed, configured priority order. Each strategy SHALL consume the units it discounts, so a later strategy never discounts the same units again.
+The engine SHALL apply the applicable commercial levers in a fixed order given by each lever's `priority` (highest first, ties broken by id), and never by minimizing the total. Each applied lever SHALL consume the units it discounts, so a later lever never discounts the same units again.
 
-#### Scenario: Strategies run in a defined order
+#### Scenario: Levers apply in priority order
 
 - **WHEN** a cart is priced
-- **THEN** the lever strategies run in a fixed priority order and never by trying to minimize the total
+- **THEN** the applicable levers are applied from the highest priority to the lowest, and never by trying to minimize the total
 
 #### Scenario: Consumed units are not discounted twice
 
-- **WHEN** a strategy has discounted some units
-- **THEN** a later strategy does not discount those units again
+- **WHEN** a lever has discounted some units
+- **THEN** a later lever does not discount those units again
 
 ### Requirement: Combo step
 
-A combo SHALL apply when all of its items reach their minimum quantity. Among the applicable combos the engine SHALL pick one by a fixed, documented priority. The combo SHALL cover the minimum quantities at its total price, units above the minimum SHALL be charged at the regular price, the saving SHALL be reported as a combo discount entry with its origin, and the combo's units SHALL be excluded from later steps.
+A combo SHALL apply when all of its items reach their minimum quantity. Combos SHALL be applied in priority order. A combo SHALL cover the minimum quantities at its total price, units above the minimum SHALL be charged at the regular price, the saving SHALL be reported as a combo discount entry with its origin, and the combo's units SHALL be consumed.
 
 #### Scenario: Combo requires all minimums
 
@@ -35,7 +35,7 @@ A combo SHALL apply when all of its items reach their minimum quantity. Among th
 - **WHEN** a combo applies
 - **THEN** the saving appears as a combo discount entry carrying its origin and amount
 
-#### Scenario: Combo units are excluded later
+#### Scenario: Combo units are consumed
 
 - **WHEN** a combo applies to some units
-- **THEN** those units are marked consumed so a later step does not discount them
+- **THEN** those units are marked consumed so a lower-priority lever does not discount them
