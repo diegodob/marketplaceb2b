@@ -13,5 +13,6 @@ public record Combo(
         @NotNull Long rulesetId,
         @NotNull String name,
         @NotNull @Size(min = 1) @Valid List<@NotNull ComboItem> items,
-        @NotNull @PositiveOrZero BigDecimal comboPrice) {
+        @NotNull @PositiveOrZero BigDecimal comboPrice,
+        int priority) {
 }

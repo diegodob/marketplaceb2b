@@ -44,7 +44,7 @@ class PricingLeversTest {
 
     private static ScaleDiscount scale(Long rulesetId, DiscountTargetType type, Long productId, Long familyId,
                                        List<ScaleTier> tiers) {
-        return new ScaleDiscount(1L, rulesetId, type, productId, familyId, tiers);
+        return new ScaleDiscount(1L, rulesetId, type, productId, familyId, tiers, 0);
     }
 
     private static ScaleDiscount skuScale(Long productId, List<ScaleTier> tiers) {
@@ -56,7 +56,7 @@ class PricingLeversTest {
     }
 
     private static Combo combo(Long rulesetId, String name, List<ComboItem> items, String price) {
-        return new Combo(1L, rulesetId, name, items, price == null ? null : new BigDecimal(price));
+        return new Combo(1L, rulesetId, name, items, price == null ? null : new BigDecimal(price), 0);
     }
 
     private static GiftCondition condition(Long productId, Long familyId, Integer minQty, String minAmount) {
@@ -203,22 +203,22 @@ class PricingLeversTest {
 
     @Test
     void validGiftByQuantityOfProductHasNoViolations() {
-        assertThat(validator.validate(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, 1, false))).isEmpty();
+        assertThat(validator.validate(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, 1, false, 0))).isEmpty();
     }
 
     @Test
     void validGiftByQuantityOfFamilyHasNoViolations() {
-        assertThat(validator.validate(new Gift(1L, 1L, condition(null, 7L, 3, null), 9L, 1, false))).isEmpty();
+        assertThat(validator.validate(new Gift(1L, 1L, condition(null, 7L, 3, null), 9L, 1, false, 0))).isEmpty();
     }
 
     @Test
     void validGiftByAmountOnlyHasNoViolations() {
-        assertThat(validator.validate(new Gift(1L, 1L, condition(null, null, null, "1000.00"), 9L, 1, false))).isEmpty();
+        assertThat(validator.validate(new Gift(1L, 1L, condition(null, null, null, "1000.00"), 9L, 1, false, 0))).isEmpty();
     }
 
     @Test
     void validGiftByQuantityAndAmountHasNoViolations() {
-        assertThat(validator.validate(new Gift(1L, 1L, condition(5L, null, 3, "1000.00"), 9L, 1, false))).isEmpty();
+        assertThat(validator.validate(new Gift(1L, 1L, condition(5L, null, 3, "1000.00"), 9L, 1, false, 0))).isEmpty();
     }
 
     @Test
@@ -249,15 +249,15 @@ class PricingLeversTest {
 
     @Test
     void giftRejectsMissingRequiredFields() {
-        assertThat(violations(new Gift(1L, null, condition(5L, null, 3, null), 9L, 1, false))).contains("rulesetId");
-        assertThat(violations(new Gift(1L, 1L, null, 9L, 1, false))).contains("condition");
-        assertThat(violations(new Gift(1L, 1L, condition(5L, null, 3, null), null, 1, false))).contains("giftProductId");
+        assertThat(violations(new Gift(1L, null, condition(5L, null, 3, null), 9L, 1, false, 0))).contains("rulesetId");
+        assertThat(violations(new Gift(1L, 1L, null, 9L, 1, false, 0))).contains("condition");
+        assertThat(violations(new Gift(1L, 1L, condition(5L, null, 3, null), null, 1, false, 0))).contains("giftProductId");
     }
 
     @Test
     void giftRejectsNonPositiveQuantity() {
-        assertThat(violations(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, 0, false))).contains("giftQty");
-        assertThat(violations(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, -2, false))).contains("giftQty");
+        assertThat(violations(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, 0, false, 0))).contains("giftQty");
+        assertThat(violations(new Gift(1L, 1L, condition(5L, null, 3, null), 9L, -2, false, 0))).contains("giftQty");
     }
 
     // --- Types ----------------------------------------------------------------
