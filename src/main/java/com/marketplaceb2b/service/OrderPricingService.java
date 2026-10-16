@@ -3,16 +3,15 @@ package com.marketplaceb2b.service;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
 import com.marketplaceb2b.model.ProductPrice;
-import com.marketplaceb2b.model.RoundingMode;
 import com.marketplaceb2b.model.Ruleset;
 import com.marketplaceb2b.model.TaxRate;
 import com.marketplaceb2b.persistence.repository.ProductPriceRepository;
@@ -36,45 +35,88 @@ public class OrderPricingService {
     }
 
     public PriceBreakdown price(Cart cart) {
-        Ruleset ruleset = rulesets.currentForTenant(cart.tenantId(), clock.instant())
-                .orElseThrow(() -> new NoCurrentRulesetException(cart.tenantId()));
-
-        Set<Long> productIds = cart.lines().stream().map(CartLine::productId).collect(Collectors.toSet());
-        Map<Long, ProductPrice> priceByProduct = productPrices.findByRulesetAndProducts(ruleset.id(), productIds)
-                .stream().collect(Collectors.toMap(ProductPrice::productId, Function.identity()));
-        Map<Long, BigDecimal> rateByCategory = taxRates.findByRuleset(ruleset.id()).stream()
-                .collect(Collectors.toMap(TaxRate::taxCategoryId, TaxRate::rate));
-
-        int scale = ruleset.currencyScale();
-        RoundingMode mode = ruleset.roundingMode();
+        Ruleset ruleset = currentRuleset(cart.tenantId());
+        Map<Long, ProductPrice> prices = pricesByProduct(ruleset, cart);
+        Map<Long, BigDecimal> rates = ratesByCategory(ruleset);
 
         List<LineBreakdown> lines = new ArrayList<>();
-        Money grossSubtotal = Money.zero(scale, mode);
-        Money totalBase = Money.zero(scale, mode);
-        Money totalTax = Money.zero(scale, mode);
+        Money grossSubtotal = Money.zero(ruleset);
+        Money totalBase = Money.zero(ruleset);
+        Money totalTax = Money.zero(ruleset);
 
         for (CartLine line : cart.lines()) {
-            ProductPrice price = priceByProduct.get(line.productId());
-            if (price == null) {
-                throw new MissingPriceException(ruleset.id(), line.productId());
-            }
-            BigDecimal rate = rateByCategory.get(price.taxCategoryId());
-            if (rate == null) {
-                throw new MissingTaxRateException(ruleset.id(), price.taxCategoryId());
-            }
-            Money gross = Money.of(price.unitPrice(), scale, mode).times(line.qty());
-            Money taxableBase = gross;
-            Money tax = taxableBase.percentage(rate);
-            lines.add(new LineBreakdown(line.productId(), line.qty(), price.unitPrice(), gross.amount(),
-                    taxableBase.amount(), rate, tax.amount()));
-            grossSubtotal = grossSubtotal.plus(gross);
-            totalBase = totalBase.plus(taxableBase);
-            totalTax = totalTax.plus(tax);
+            LinePricing priced = priceLine(line, ruleset, prices, rates);
+            lines.add(priced.line());
+            grossSubtotal = grossSubtotal.plus(priced.gross());
+            totalBase = totalBase.plus(priced.taxableBase());
+            totalTax = totalTax.plus(priced.tax());
         }
 
         Money total = totalBase.plus(totalTax);
-        return new PriceBreakdown(cart.tenantId(), ruleset.id(), ruleset.currency().trim(), List.copyOf(lines),
-                List.of(), List.of(), grossSubtotal.amount(), Money.zero(scale, mode).amount(), totalBase.amount(),
-                totalTax.amount(), total.amount());
+        return new PriceBreakdown(
+                cart.tenantId(),
+                ruleset.id(),
+                ruleset.currency().trim(),
+                List.copyOf(lines),
+                List.of(),
+                List.of(),
+                grossSubtotal.amount(),
+                Money.zero(ruleset).amount(),
+                totalBase.amount(),
+                totalTax.amount(),
+                total.amount());
+    }
+
+    private Ruleset currentRuleset(long tenantId) {
+        return rulesets.currentForTenant(tenantId, clock.instant())
+                .orElseThrow(() -> new NoCurrentRulesetException(tenantId));
+    }
+
+    private Map<Long, ProductPrice> pricesByProduct(Ruleset ruleset, Cart cart) {
+        Set<Long> productIds = new LinkedHashSet<>();
+        for (CartLine line : cart.lines()) {
+            productIds.add(line.productId());
+        }
+        Map<Long, ProductPrice> byProduct = new HashMap<>();
+        for (ProductPrice price : productPrices.findByRulesetAndProducts(ruleset.id(), productIds)) {
+            byProduct.put(price.productId(), price);
+        }
+        return byProduct;
+    }
+
+    private Map<Long, BigDecimal> ratesByCategory(Ruleset ruleset) {
+        Map<Long, BigDecimal> byCategory = new HashMap<>();
+        for (TaxRate rate : taxRates.findByRuleset(ruleset.id())) {
+            byCategory.put(rate.taxCategoryId(), rate.rate());
+        }
+        return byCategory;
+    }
+
+    private LinePricing priceLine(CartLine line, Ruleset ruleset, Map<Long, ProductPrice> prices,
+                                  Map<Long, BigDecimal> rates) {
+        ProductPrice price = prices.get(line.productId());
+        if (price == null) {
+            throw new MissingPriceException(ruleset.id(), line.productId());
+        }
+        BigDecimal rate = rates.get(price.taxCategoryId());
+        if (rate == null) {
+            throw new MissingTaxRateException(ruleset.id(), price.taxCategoryId());
+        }
+
+        Money gross = Money.of(listPrice(line, price), ruleset);
+        Money taxableBase = gross;
+        Money tax = taxableBase.percentage(rate);
+
+        LineBreakdown breakdown = new LineBreakdown(
+                line.productId(), line.qty(), price.unitPrice(),
+                gross.amount(), taxableBase.amount(), rate, tax.amount());
+        return new LinePricing(breakdown, gross, taxableBase, tax);
+    }
+
+    private static BigDecimal listPrice(CartLine line, ProductPrice price) {
+        return price.unitPrice().multiply(BigDecimal.valueOf(line.qty()));
+    }
+
+    private record LinePricing(LineBreakdown line, Money gross, Money taxableBase, Money tax) {
     }
 }

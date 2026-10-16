@@ -77,13 +77,13 @@ class OrderPricingServiceTest extends AbstractIntegrationTest {
                 arTenantId(), unique("SKU"));
         insert("INSERT INTO product_price (ruleset_id, product_id, tax_category_id, unit_price) VALUES (?, ?, ?, 3.3350)",
                 arRulesetId(), product, category);
-        Cart cart = new Cart(arTenantId(), null, null, List.of(new CartLine(product, 1)));
+        Cart cart = new Cart(arTenantId(), null, null, List.of(new CartLine(product, 3)));
 
         PriceBreakdown breakdown = service.price(cart);
 
         LineBreakdown line = breakdown.lines().get(0);
-        assertThat(line.taxableBase()).isEqualByComparingTo("3.34");
-        assertThat(line.tax()).isEqualByComparingTo("0.70");
-        assertThat(breakdown.total()).isEqualByComparingTo("4.04");
+        assertThat(line.taxableBase()).isEqualByComparingTo("10.01");
+        assertThat(line.tax()).isEqualByComparingTo("2.10");
+        assertThat(breakdown.total()).isEqualByComparingTo("12.11");
     }
 }

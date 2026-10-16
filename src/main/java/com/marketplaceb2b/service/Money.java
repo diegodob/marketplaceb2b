@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.Objects;
 
 import com.marketplaceb2b.model.RoundingMode;
+import com.marketplaceb2b.model.Ruleset;
 
 public record Money(BigDecimal amount, int scale, RoundingMode roundingMode) {
 
@@ -12,8 +13,16 @@ public record Money(BigDecimal amount, int scale, RoundingMode roundingMode) {
         Objects.requireNonNull(roundingMode, "roundingMode");
     }
 
+    public static Money of(BigDecimal amount, Ruleset ruleset) {
+        return of(amount, ruleset.currencyScale(), ruleset.roundingMode());
+    }
+
     public static Money of(BigDecimal amount, int scale, RoundingMode roundingMode) {
         return new Money(amount.setScale(scale, toJava(roundingMode)), scale, roundingMode);
+    }
+
+    public static Money zero(Ruleset ruleset) {
+        return zero(ruleset.currencyScale(), ruleset.roundingMode());
     }
 
     public static Money zero(int scale, RoundingMode roundingMode) {
