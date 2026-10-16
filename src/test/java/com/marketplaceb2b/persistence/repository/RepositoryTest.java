@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -14,9 +15,14 @@ import com.marketplaceb2b.model.IdempotencyKey;
 import com.marketplaceb2b.model.LedgerEntryType;
 import com.marketplaceb2b.model.OutboxDestination;
 import com.marketplaceb2b.model.OutboxEventType;
+import com.marketplaceb2b.model.Combo;
+import com.marketplaceb2b.model.DiscountTargetType;
+import com.marketplaceb2b.model.Gift;
 import com.marketplaceb2b.model.PaymentMethod;
 import com.marketplaceb2b.model.ProductFamily;
 import com.marketplaceb2b.model.Quote;
+import com.marketplaceb2b.model.ScaleDiscount;
+import com.marketplaceb2b.model.ScaleTier;
 import com.marketplaceb2b.model.SalesOrder;
 import com.marketplaceb2b.persistence.PersistenceAccess;
 import com.marketplaceb2b.support.AbstractIntegrationTest;
@@ -41,6 +47,12 @@ class RepositoryTest extends AbstractIntegrationTest {
     private OutboxRepository outbox;
     @Autowired
     private ProductFamilyRepository productFamilies;
+    @Autowired
+    private ScaleDiscountRepository scaleDiscounts;
+    @Autowired
+    private ComboRepository combos;
+    @Autowired
+    private GiftRepository gifts;
 
     @Test
     void productFamilyRepositoryRoundTrips() {
@@ -49,6 +61,32 @@ class RepositoryTest extends AbstractIntegrationTest {
         ProductFamily family = productFamilies.find(tenant, id).orElseThrow();
         assertThat(family.tenantId()).isEqualTo(tenant);
         assertThat(productFamilies.find(tenant + 999, id)).isEmpty();
+    }
+
+    @Test
+    void scaleDiscountRepositoryLoadsSeedWithTiers() {
+        List<ScaleDiscount> scales = scaleDiscounts.findByRuleset(arRulesetId());
+        assertThat(scales).hasSize(2);
+        ScaleDiscount skuScale = scales.stream()
+                .filter(scale -> scale.targetType() == DiscountTargetType.SKU).findFirst().orElseThrow();
+        assertThat(skuScale.tiers()).extracting(ScaleTier::fromQty).containsExactly(12, 24);
+        assertThat(scales.stream().filter(scale -> scale.targetType() == DiscountTargetType.FAMILY).findFirst()
+                .orElseThrow().familyId()).isNotNull();
+    }
+
+    @Test
+    void comboRepositoryLoadsSeedWithItems() {
+        List<Combo> loaded = combos.findByRuleset(arRulesetId());
+        assertThat(loaded).hasSize(1);
+        assertThat(loaded.get(0).comboPrice()).isEqualByComparingTo("20000.00");
+        assertThat(loaded.get(0).items()).hasSize(2);
+    }
+
+    @Test
+    void giftRepositoryLoadsSeedWithConditions() {
+        List<Gift> loaded = gifts.findByRuleset(arRulesetId());
+        assertThat(loaded).hasSize(3);
+        assertThat(loaded).allSatisfy(gift -> assertThat(gift.condition()).isNotNull());
     }
 
     @Test

@@ -18,7 +18,8 @@ class ForeignKeyIndexTest extends AbstractDatabaseTest {
     private static final List<String> TABLES = List.of(
             "fiscal_id_type", "tenant", "ruleset", "tax_rate", "product_family", "product", "product_price",
             "payment_method", "customer", "credit_account", "quote", "quote_line", "sales_order",
-            "idempotency_key", "credit_ledger", "outbox");
+            "idempotency_key", "credit_ledger", "outbox",
+            "scale_discount", "scale_tier", "combo", "combo_item", "gift_condition", "gift");
 
     @Test
     void everyForeignKeyColumnHasALeadingIndex() throws SQLException {
