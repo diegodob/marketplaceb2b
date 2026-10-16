@@ -22,9 +22,9 @@ import com.marketplaceb2b.dto.Cart;
 import com.marketplaceb2b.dto.CartLine;
 import com.marketplaceb2b.dto.LineBreakdown;
 import com.marketplaceb2b.dto.PriceBreakdown;
-import com.marketplaceb2b.persistence.repository.ProductPriceRepository;
-import com.marketplaceb2b.persistence.repository.RulesetRepository;
-import com.marketplaceb2b.persistence.repository.TaxRateRepository;
+import com.marketplaceb2b.repository.ProductPriceRepository;
+import com.marketplaceb2b.repository.RulesetRepository;
+import com.marketplaceb2b.repository.TaxRateRepository;
 
 @Service
 public class OrderPricingService {

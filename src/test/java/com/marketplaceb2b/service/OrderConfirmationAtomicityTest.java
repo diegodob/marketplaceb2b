@@ -17,7 +17,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.marketplaceb2b.persistence.repository.OutboxRepository;
+import com.marketplaceb2b.repository.OutboxRepository;
 import com.marketplaceb2b.support.AbstractIntegrationTest;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)

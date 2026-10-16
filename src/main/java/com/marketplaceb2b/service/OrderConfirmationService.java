@@ -22,13 +22,13 @@ import com.marketplaceb2b.service.exception.InsufficientCreditException;
 import com.marketplaceb2b.service.exception.QuoteExpiredException;
 import com.marketplaceb2b.service.exception.QuoteNotFoundException;
 import com.marketplaceb2b.dto.OrderConfirmation;
-import com.marketplaceb2b.persistence.repository.CreditAccountRepository;
-import com.marketplaceb2b.persistence.repository.CreditLedgerRepository;
-import com.marketplaceb2b.persistence.repository.IdempotencyKeyRepository;
-import com.marketplaceb2b.persistence.repository.OutboxRepository;
-import com.marketplaceb2b.persistence.repository.PaymentMethodRepository;
-import com.marketplaceb2b.persistence.repository.QuoteRepository;
-import com.marketplaceb2b.persistence.repository.SalesOrderRepository;
+import com.marketplaceb2b.repository.CreditAccountRepository;
+import com.marketplaceb2b.repository.CreditLedgerRepository;
+import com.marketplaceb2b.repository.IdempotencyKeyRepository;
+import com.marketplaceb2b.repository.OutboxRepository;
+import com.marketplaceb2b.repository.PaymentMethodRepository;
+import com.marketplaceb2b.repository.QuoteRepository;
+import com.marketplaceb2b.repository.SalesOrderRepository;
 
 @Service
 public class OrderConfirmationService {
