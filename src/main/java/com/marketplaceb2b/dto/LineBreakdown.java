@@ -7,6 +7,7 @@ public record LineBreakdown(
         int qty,
         BigDecimal unitPrice,
         BigDecimal gross,
+        BigDecimal discount,
         BigDecimal taxableBase,
         BigDecimal taxRate,
         BigDecimal tax) {

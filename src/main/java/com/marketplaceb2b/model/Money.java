@@ -45,6 +45,13 @@ public record Money(BigDecimal amount, int scale, RoundingMode roundingMode) {
         return of(amount.add(other.amount), scale, roundingMode);
     }
 
+    public Money minus(Money other) {
+        if (scale != other.scale || roundingMode != other.roundingMode) {
+            throw new IllegalArgumentException("Cannot combine amounts with different rounding policies");
+        }
+        return of(amount.subtract(other.amount), scale, roundingMode);
+    }
+
     static java.math.RoundingMode toJava(RoundingMode mode) {
         return switch (mode) {
             case HALF_UP -> java.math.RoundingMode.HALF_UP;

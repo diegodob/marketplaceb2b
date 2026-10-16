@@ -11,20 +11,25 @@ import java.util.Set;
 
 import org.springframework.stereotype.Service;
 
-import com.marketplaceb2b.model.ProductPrice;
-import com.marketplaceb2b.model.Ruleset;
-import com.marketplaceb2b.model.TaxRate;
-import com.marketplaceb2b.service.exception.MissingPriceException;
-import com.marketplaceb2b.service.exception.MissingTaxRateException;
-import com.marketplaceb2b.service.exception.NoCurrentRulesetException;
-import com.marketplaceb2b.model.Money;
 import com.marketplaceb2b.dto.Cart;
 import com.marketplaceb2b.dto.CartLine;
 import com.marketplaceb2b.dto.LineBreakdown;
 import com.marketplaceb2b.dto.PriceBreakdown;
+import com.marketplaceb2b.model.Combo;
+import com.marketplaceb2b.model.Money;
+import com.marketplaceb2b.model.ProductPrice;
+import com.marketplaceb2b.model.Ruleset;
+import com.marketplaceb2b.model.TaxRate;
+import com.marketplaceb2b.repository.ComboRepository;
 import com.marketplaceb2b.repository.ProductPriceRepository;
 import com.marketplaceb2b.repository.RulesetRepository;
 import com.marketplaceb2b.repository.TaxRateRepository;
+import com.marketplaceb2b.service.exception.MissingPriceException;
+import com.marketplaceb2b.service.exception.MissingTaxRateException;
+import com.marketplaceb2b.service.exception.NoCurrentRulesetException;
+import com.marketplaceb2b.service.pricing.PricingContext;
+import com.marketplaceb2b.service.pricing.PricingLine;
+import com.marketplaceb2b.service.pricing.PricingPipeline;
 
 @Service
 public class OrderPricingService {
@@ -32,13 +37,18 @@ public class OrderPricingService {
     private final RulesetRepository rulesets;
     private final ProductPriceRepository productPrices;
     private final TaxRateRepository taxRates;
+    private final ComboRepository comboRepository;
+    private final PricingPipeline pipeline;
     private final Clock clock;
 
     public OrderPricingService(RulesetRepository rulesets, ProductPriceRepository productPrices,
-                               TaxRateRepository taxRates, Clock clock) {
+                               TaxRateRepository taxRates, ComboRepository comboRepository, PricingPipeline pipeline,
+                               Clock clock) {
         this.rulesets = rulesets;
         this.productPrices = productPrices;
         this.taxRates = taxRates;
+        this.comboRepository = comboRepository;
+        this.pipeline = pipeline;
         this.clock = clock;
     }
 
@@ -46,30 +56,49 @@ public class OrderPricingService {
         Ruleset ruleset = currentRuleset(cart.tenantId());
         Map<Long, ProductPrice> prices = pricesByProduct(ruleset, cart);
         Map<Long, BigDecimal> rates = ratesByCategory(ruleset);
+        List<PricingLine> lines = priceLines(cart, ruleset, prices, rates);
+        List<Combo> combos = comboRepository.findByRuleset(ruleset.id());
 
+        PricingContext context = new PricingContext(cart, ruleset, prices, rates, lines, combos);
+        pipeline.run(context);
+
+        return breakdown(context);
+    }
+
+    private PriceBreakdown breakdown(PricingContext context) {
+        Ruleset ruleset = context.ruleset();
         List<LineBreakdown> lines = new ArrayList<>();
         Money grossSubtotal = Money.zero(ruleset);
+        Money totalDiscounts = Money.zero(ruleset);
         Money totalBase = Money.zero(ruleset);
         Money totalTax = Money.zero(ruleset);
 
-        for (CartLine line : cart.lines()) {
-            LinePricing priced = priceLine(line, ruleset, prices, rates);
-            lines.add(priced.line());
-            grossSubtotal = grossSubtotal.plus(priced.gross());
-            totalBase = totalBase.plus(priced.taxableBase());
-            totalTax = totalTax.plus(priced.tax());
+        for (PricingLine line : context.lines()) {
+            Money gross = line.gross();
+            Money discount = line.discount();
+            Money base = line.taxableBase();
+            Money tax = base.percentage(line.rate());
+
+            lines.add(new LineBreakdown(
+                    line.productId(), line.qty(), line.unitPrice(),
+                    gross.amount(), discount.amount(), base.amount(), line.rate(), tax.amount()));
+
+            grossSubtotal = grossSubtotal.plus(gross);
+            totalDiscounts = totalDiscounts.plus(discount);
+            totalBase = totalBase.plus(base);
+            totalTax = totalTax.plus(tax);
         }
 
         Money total = totalBase.plus(totalTax);
         return new PriceBreakdown(
-                cart.tenantId(),
+                context.cart().tenantId(),
                 ruleset.id(),
                 ruleset.currency().trim(),
                 List.copyOf(lines),
-                List.of(),
-                List.of(),
+                context.discounts(),
+                context.gifts(),
                 grossSubtotal.amount(),
-                Money.zero(ruleset).amount(),
+                totalDiscounts.amount(),
                 totalBase.amount(),
                 totalTax.amount(),
                 total.amount());
@@ -100,31 +129,20 @@ public class OrderPricingService {
         return byCategory;
     }
 
-    private LinePricing priceLine(CartLine line, Ruleset ruleset, Map<Long, ProductPrice> prices,
-                                  Map<Long, BigDecimal> rates) {
-        ProductPrice price = prices.get(line.productId());
-        if (price == null) {
-            throw new MissingPriceException(ruleset.id(), line.productId());
+    private static List<PricingLine> priceLines(Cart cart, Ruleset ruleset, Map<Long, ProductPrice> prices,
+                                                Map<Long, BigDecimal> rates) {
+        List<PricingLine> lines = new ArrayList<>();
+        for (CartLine line : cart.lines()) {
+            ProductPrice price = prices.get(line.productId());
+            if (price == null) {
+                throw new MissingPriceException(ruleset.id(), line.productId());
+            }
+            BigDecimal rate = rates.get(price.taxCategoryId());
+            if (rate == null) {
+                throw new MissingTaxRateException(ruleset.id(), price.taxCategoryId());
+            }
+            lines.add(PricingLine.of(line.productId(), line.qty(), price.unitPrice(), rate, ruleset));
         }
-        BigDecimal rate = rates.get(price.taxCategoryId());
-        if (rate == null) {
-            throw new MissingTaxRateException(ruleset.id(), price.taxCategoryId());
-        }
-
-        Money gross = Money.of(listPrice(line, price), ruleset);
-        Money taxableBase = gross;
-        Money tax = taxableBase.percentage(rate);
-
-        LineBreakdown breakdown = new LineBreakdown(
-                line.productId(), line.qty(), price.unitPrice(),
-                gross.amount(), taxableBase.amount(), rate, tax.amount());
-        return new LinePricing(breakdown, gross, taxableBase, tax);
-    }
-
-    private static BigDecimal listPrice(CartLine line, ProductPrice price) {
-        return price.unitPrice().multiply(BigDecimal.valueOf(line.qty()));
-    }
-
-    private record LinePricing(LineBreakdown line, Money gross, Money taxableBase, Money tax) {
+        return lines;
     }
 }
