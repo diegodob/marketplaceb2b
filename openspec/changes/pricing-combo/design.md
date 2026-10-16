@@ -43,6 +43,22 @@ Entrada de descuento: `origin=COMBO, sourceId=<id del combo>, amount=7000.00`. `
 - **The engine never minimizes the total** → the buyer may not get the theoretical best price, but the result is predictable and auditable; the distributor controls the order via `priority`.
 - **Pipeline adds indirection** → small; each strategy is independently testable, and the engine keeps its current tests.
 
+## Follow-up: persistir el descuento aplicado (B1)
+
+Decisión: el descuento aplicado se **congela** al emitir la cotización, no se recalcula contra la configuración (que es mutable). Por eso el desglose que produce el motor (cada entrada con su `origin` + `sourceId`) se **persiste por línea**:
+
+```sql
+quote_line_discount (
+    id, quote_line_id FK, source_type ('SCALE'|'COMBO'|'GIFT'),
+    source_id, label, amount
+)
+```
+(opcional: `quote.subtotal`, `quote.discount_total`, `quote.tax_total`).
+
+Motivo: `quote_line` guarda `unit_price` (lista) y `taxable_base` (neta), así que el importe es derivable (`qty × unit_price − taxable_base`), pero el **origen** y el **reparto por palanca** se pierden; además, con la config editable (`combo.combo_price`, `scale_tier.percentage`, `priority`) un recálculo posterior diverge de lo guardado. Persistir el descuento con su origen mantiene la cotización auditable e inmutable.
+
+Alcance: se implementa en `quote-creation` (creación de la cotización), no en el motor de pricing.
+
 ## Open Questions
 
 - None.
