@@ -4,7 +4,7 @@
 
 ### Requirement: Pricing pipeline
 
-The engine SHALL apply the applicable commercial levers in a fixed order given by each lever's `priority` (highest first, ties broken by id), and never by minimizing the total. Each applied lever SHALL consume the units it discounts, so a later lever never discounts the same units again.
+The engine SHALL apply the applicable commercial levers in a fixed order given by each lever's `priority` (highest first, ties broken by id), and never by minimizing the total. Each applied lever SHALL consume the units it discounts, so a later lever never discounts the same units again. A line's taxable base SHALL be its list gross minus its discounts, and the tax SHALL be computed on that base.
 
 #### Scenario: Levers apply in priority order
 
@@ -18,7 +18,7 @@ The engine SHALL apply the applicable commercial levers in a fixed order given b
 
 ### Requirement: Combo step
 
-A combo SHALL apply when every item still has enough available units to reach its minimum quantity. Combos SHALL be applied in priority order. A combo SHALL cover the minimum quantities at its total price by recording, per covered line, a discount (its share of the difference) while the line keeps its list gross; units above the minimum SHALL be charged at the regular price; the saving SHALL be reported as a combo discount entry carrying its origin (the lever's type and id); and the combo's units SHALL be consumed. A line's taxable base SHALL be its list gross minus its discounts, and the tax SHALL be computed on that base.
+A combo SHALL apply when every item still has enough available units to reach its minimum quantity, and combos SHALL be applied in priority order. A combo SHALL cover the minimum quantities at its total price by recording, per covered line, a discount (its share of the difference) while the line keeps its list gross; units above the minimum SHALL be charged at the regular price, and the combo's units SHALL be consumed. The saving SHALL be reported as a combo discount entry.
 
 #### Scenario: Combo requires all minimums
 
