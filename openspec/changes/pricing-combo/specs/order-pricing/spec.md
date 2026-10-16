@@ -18,7 +18,7 @@ The engine SHALL apply the applicable commercial levers in a fixed order given b
 
 ### Requirement: Combo step
 
-A combo SHALL apply when all of its items reach their minimum quantity. Combos SHALL be applied in priority order. A combo SHALL cover the minimum quantities at its total price, units above the minimum SHALL be charged at the regular price, the saving SHALL be reported as a combo discount entry with its origin, and the combo's units SHALL be consumed.
+A combo SHALL apply when every item still has enough available units to reach its minimum quantity. Combos SHALL be applied in priority order. A combo SHALL cover the minimum quantities at its total price, units above the minimum SHALL be charged at the regular price, the saving SHALL be reported as a combo discount entry carrying its origin (the lever's type and id), and the combo's units SHALL be consumed.
 
 #### Scenario: Combo requires all minimums
 
@@ -33,7 +33,7 @@ A combo SHALL apply when all of its items reach their minimum quantity. Combos S
 #### Scenario: Combo is reported with its origin
 
 - **WHEN** a combo applies
-- **THEN** the saving appears as a combo discount entry carrying its origin and amount
+- **THEN** the saving appears as a combo discount entry carrying the source lever (its type and id) and the amount
 
 #### Scenario: Combo units are consumed
 
