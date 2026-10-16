@@ -20,9 +20,12 @@ import com.marketplaceb2b.model.DiscountTargetType;
 import com.marketplaceb2b.model.Gift;
 import com.marketplaceb2b.model.PaymentMethod;
 import com.marketplaceb2b.model.ProductFamily;
+import com.marketplaceb2b.model.ProductPrice;
 import com.marketplaceb2b.model.Quote;
+import com.marketplaceb2b.model.Ruleset;
 import com.marketplaceb2b.model.ScaleDiscount;
 import com.marketplaceb2b.model.ScaleTier;
+import com.marketplaceb2b.model.TaxRate;
 import com.marketplaceb2b.model.SalesOrder;
 import com.marketplaceb2b.persistence.PersistenceAccess;
 import com.marketplaceb2b.support.AbstractIntegrationTest;
@@ -53,6 +56,12 @@ class RepositoryTest extends AbstractIntegrationTest {
     private ComboRepository combos;
     @Autowired
     private GiftRepository gifts;
+    @Autowired
+    private RulesetRepository rulesets;
+    @Autowired
+    private ProductPriceRepository productPrices;
+    @Autowired
+    private TaxRateRepository taxRates;
 
     @Test
     void productFamilyRepositoryRoundTrips() {
@@ -87,6 +96,18 @@ class RepositoryTest extends AbstractIntegrationTest {
         List<Gift> loaded = gifts.findByRuleset(arRulesetId());
         assertThat(loaded).hasSize(3);
         assertThat(loaded).allSatisfy(gift -> assertThat(gift.condition()).isNotNull());
+    }
+
+    @Test
+    void pricingReadsResolveTheSeed() {
+        Ruleset ruleset = rulesets.currentForTenant(arTenantId(), Instant.now()).orElseThrow();
+        assertThat(ruleset.currency().trim()).isEqualTo("ARS");
+        assertThat(taxRates.findByRuleset(ruleset.id())).isNotEmpty();
+
+        long gas = jdbc.queryForObject("SELECT id FROM product WHERE sku = 'GAS-500'", Long.class);
+        assertThat(productPrices.findByRulesetAndProducts(ruleset.id(), List.of(gas)))
+                .singleElement()
+                .satisfies(price -> assertThat(price.unitPrice()).isEqualByComparingTo("4000.00"));
     }
 
     @Test
