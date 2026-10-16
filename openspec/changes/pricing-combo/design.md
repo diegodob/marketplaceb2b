@@ -45,15 +45,19 @@ Entrada de descuento: `origin=COMBO, sourceId=<id del combo>, amount=7000.00`. `
 
 ## Follow-up: persistir el descuento aplicado (B1)
 
-Decisión: el descuento aplicado se **congela** al emitir la cotización, no se recalcula contra la configuración (que es mutable). Por eso el desglose que produce el motor (cada entrada con su `origin` + `sourceId`) se **persiste por línea**:
+Decisión: el descuento aplicado se **congela** al emitir la cotización, no se recalcula contra la configuración (que es mutable). Por eso el desglose que produce el motor (cada entrada con su tipo de palanca y su id) se **persiste por línea**, con **FK reales tipadas** (sin `source_id` polimórfico ni `source_type` no verificable):
 
 ```sql
 quote_line_discount (
-    id, quote_line_id FK, source_type ('SCALE'|'COMBO'|'GIFT'),
-    source_id, label, amount
+    id, quote_line_id FK,
+    scale_discount_id FK NULL, combo_id FK NULL, gift_id FK NULL,
+    detail, amount,
+    CHECK (exactly one of the three lever ids is NOT NULL)   -- la que aplicó
 )
 ```
 (opcional: `quote.subtotal`, `quote.discount_total`, `quote.tax_total`).
+
+En la respuesta, `origin` identifica el tipo de palanca y `sourceId` el id de la fila; en la BD eso corresponde a **cuál** de las tres columnas FK quedó seteada (`detail` guarda el nombre del combo/escala tal como se emitió).
 
 Motivo: `quote_line` guarda `unit_price` (lista) y `taxable_base` (neta), así que el importe es derivable (`qty × unit_price − taxable_base`), pero el **origen** y el **reparto por palanca** se pierden; además, con la config editable (`combo.combo_price`, `scale_tier.percentage`, `priority`) un recálculo posterior diverge de lo guardado. Persistir el descuento con su origen mantiene la cotización auditable e inmutable.
 
