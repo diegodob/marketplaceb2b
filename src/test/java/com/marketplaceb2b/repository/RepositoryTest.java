@@ -64,7 +64,7 @@ class RepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void productFamilyRepositoryRoundTrips() {
-        long tenant = arTenantId();
+        long tenant = gtTenantId();
         long id = productFamilies.insert(tenant, unique("Fam"));
         ProductFamily family = productFamilies.find(tenant, id).orElseThrow();
         assertThat(family.tenantId()).isEqualTo(tenant);
@@ -73,7 +73,7 @@ class RepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void scaleDiscountRepositoryLoadsSeedWithTiers() {
-        List<ScaleDiscount> scales = scaleDiscounts.findByRuleset(arRulesetId());
+        List<ScaleDiscount> scales = scaleDiscounts.findByRuleset(gtRulesetId());
         assertThat(scales).hasSize(2);
         assertThat(scales).allSatisfy(scale -> assertThat(scale.priority()).isEqualTo(10));
         ScaleDiscount skuScale = scales.stream()
@@ -85,7 +85,7 @@ class RepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void comboRepositoryLoadsSeedWithItems() {
-        List<Combo> loaded = combos.findByRuleset(arRulesetId());
+        List<Combo> loaded = combos.findByRuleset(gtRulesetId());
         assertThat(loaded).hasSize(1);
         assertThat(loaded.get(0).comboPrice()).isEqualByComparingTo("20000.00");
         assertThat(loaded.get(0).priority()).isEqualTo(20);
@@ -94,7 +94,7 @@ class RepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void giftRepositoryLoadsSeedWithConditions() {
-        List<Gift> loaded = gifts.findByRuleset(arRulesetId());
+        List<Gift> loaded = gifts.findByRuleset(gtRulesetId());
         assertThat(loaded).hasSize(3);
         assertThat(loaded).allSatisfy(gift -> assertThat(gift.condition()).isNotNull());
         assertThat(loaded).allSatisfy(gift -> assertThat(gift.priority()).isEqualTo(5));
@@ -102,8 +102,8 @@ class RepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void pricingReadsResolveTheSeed() {
-        Ruleset ruleset = rulesets.currentForTenant(arTenantId(), Instant.now()).orElseThrow();
-        assertThat(ruleset.currency().trim()).isEqualTo("ARS");
+        Ruleset ruleset = rulesets.currentForTenant(gtTenantId(), Instant.now()).orElseThrow();
+        assertThat(ruleset.currency().trim()).isEqualTo("GTQ");
         assertThat(taxRates.findByRuleset(ruleset.id())).isNotEmpty();
 
         long gas = jdbc.queryForObject("SELECT id FROM product WHERE sku = 'GAS-500'", Long.class);
@@ -114,15 +114,15 @@ class RepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void giftRepositoryMapsTheTaxableFlag() {
-        assertThat(gifts.findByRuleset(arRulesetId()))
+        assertThat(gifts.findByRuleset(gtRulesetId()))
                 .allSatisfy(gift -> assertThat(gift.taxable()).isFalse());
 
         long condition = insert("INSERT INTO gift_condition (product_id, family_id, min_qty, min_amount) "
                 + "VALUES (NULL, NULL, NULL, 1000.00)");
         long giftId = insert("INSERT INTO gift (ruleset_id, condition_id, gift_product_id, gift_qty, taxable) "
-                + "VALUES (?, ?, (SELECT id FROM product WHERE sku = 'AGU-500'), 1, TRUE)", arRulesetId(), condition);
+                + "VALUES (?, ?, (SELECT id FROM product WHERE sku = 'AGU-500'), 1, TRUE)", gtRulesetId(), condition);
 
-        Gift taxable = gifts.findByRuleset(arRulesetId()).stream()
+        Gift taxable = gifts.findByRuleset(gtRulesetId()).stream()
                 .filter(gift -> gift.id() == giftId).findFirst().orElseThrow();
         assertThat(taxable.taxable()).isTrue();
     }
@@ -138,8 +138,8 @@ class RepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void quoteRepositoryLoadsTenantScopedQuote() {
-        long tenant = arTenantId();
-        long quoteId = newQuote(tenant, arCustomerId(), arRulesetId(), paymentMethodId("CASH"), "1234.5600",
+        long tenant = gtTenantId();
+        long quoteId = newQuote(tenant, gtCustomerId(), gtRulesetId(), paymentMethodId("CASH"), "1234.5600",
                 Instant.now().plusSeconds(3600));
         Quote quote = quotes.find(tenant, quoteId).orElseThrow();
         assertThat(quote.id()).isEqualTo(quoteId);
@@ -156,7 +156,7 @@ class RepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void creditAccountRepositoryLocksAndConsumes() {
-        CreditAccount account = creditAccounts.lockByCustomer(arCustomerId()).orElseThrow();
+        CreditAccount account = creditAccounts.lockByCustomer(gtCustomerId()).orElseThrow();
         creditAccounts.consume(account.id(), new BigDecimal("1000.00"));
         BigDecimal available = jdbc.queryForObject("SELECT available FROM credit_account WHERE id = ?",
                 BigDecimal.class, account.id());
@@ -165,8 +165,8 @@ class RepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void idempotencyKeyRepositoryRoundTrips() {
-        long customer = arCustomerId();
-        long order = salesOrders.insert(arTenantId(), newQuote("10.00", Instant.now().plusSeconds(3600)), customer,
+        long customer = gtCustomerId();
+        long order = salesOrders.insert(gtTenantId(), newQuote("10.00", Instant.now().plusSeconds(3600)), customer,
                 "PUB-1", Instant.now());
         idempotencyKeys.insert(customer, "IDEM-R", order);
         IdempotencyKey key = idempotencyKeys.find(customer, "IDEM-R").orElseThrow();
@@ -175,9 +175,9 @@ class RepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void salesOrderRepositoryInsertsAndReads() {
-        long tenant = arTenantId();
+        long tenant = gtTenantId();
         long quote = newQuote("10.00", Instant.now().plusSeconds(3600));
-        long orderId = salesOrders.insert(tenant, quote, arCustomerId(), "PUB-2", Instant.now());
+        long orderId = salesOrders.insert(tenant, quote, gtCustomerId(), "PUB-2", Instant.now());
         SalesOrder order = salesOrders.findById(orderId).orElseThrow();
         assertThat(order.quoteId()).isEqualTo(quote);
         assertThat(order.publicNumber()).isEqualTo("PUB-2");
@@ -185,9 +185,9 @@ class RepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void ledgerAndOutboxRepositoriesInsert() {
-        long customer = arCustomerId();
+        long customer = gtCustomerId();
         long account = jdbc.queryForObject("SELECT id FROM credit_account WHERE customer_id = ?", Long.class, customer);
-        long order = salesOrders.insert(arTenantId(), newQuote("10.00", Instant.now().plusSeconds(3600)), customer,
+        long order = salesOrders.insert(gtTenantId(), newQuote("10.00", Instant.now().plusSeconds(3600)), customer,
                 "PUB-3", Instant.now());
         creditLedger.insert(account, order, new BigDecimal("-10.00"), LedgerEntryType.CONSUMPTION, Instant.now());
         outbox.insertPending(order, OutboxDestination.PUSH, OutboxEventType.ORDER_CONFIRMED, Instant.now());

@@ -55,12 +55,12 @@ abstract class AbstractDatabaseTest {
         assertThatThrownBy(() -> jdbc.update(sql, args)).isInstanceOf(DataAccessException.class);
     }
 
-    protected long arCountryId() {
-        return jdbc.queryForObject("SELECT id FROM country WHERE code = 'AR'", Long.class);
+    protected long gtCountryId() {
+        return jdbc.queryForObject("SELECT id FROM country WHERE code = 'GT'", Long.class);
     }
 
     protected long newTenant(String name) {
-        return insert("INSERT INTO tenant (name, country_id) VALUES (?, ?)", name, arCountryId());
+        return insert("INSERT INTO tenant (name, country_id) VALUES (?, ?)", name, gtCountryId());
     }
 
     protected long newTaxCategory(String code) {
@@ -69,15 +69,16 @@ abstract class AbstractDatabaseTest {
 
     protected long newRuleset(long tenantId, String version, Timestamp effectiveFrom) {
         return insert("INSERT INTO ruleset (tenant_id, version, currency, currency_scale, rounding_mode, effective_from) "
-                + "VALUES (?, ?, 'ARS', 2, 'HALF_UP', ?)", tenantId, version, effectiveFrom);
+                + "VALUES (?, ?, 'GTQ', 2, 'HALF_UP', ?)", tenantId, version, effectiveFrom);
     }
 
     protected long newRuleset(long tenantId) {
         return newRuleset(tenantId, unique("V"), ts("2026-01-01 00:00:00"));
     }
 
-    protected long arFiscalIdTypeId() {
-        return jdbc.queryForObject("SELECT id FROM fiscal_id_type WHERE code = 'CUIT'", Long.class);
+    protected long gtFiscalIdTypeId() {
+        return jdbc.queryForObject("SELECT id FROM fiscal_id_type WHERE code = 'NIT' "
+                + "AND country_id = (SELECT id FROM country WHERE code = 'GT')", Long.class);
     }
 
     protected long newProduct(long tenantId, String sku) {
@@ -91,11 +92,11 @@ abstract class AbstractDatabaseTest {
 
     protected long newCustomer(long tenantId, String fiscalId) {
         return insert("INSERT INTO customer (tenant_id, name, fiscal_id, fiscal_id_type_id) VALUES (?, ?, ?, ?)",
-                tenantId, "Customer " + fiscalId, fiscalId, arFiscalIdTypeId());
+                tenantId, "Customer " + fiscalId, fiscalId, gtFiscalIdTypeId());
     }
 
     protected long newCreditAccount(long customerId, String creditLimit, String available) {
-        return insert("INSERT INTO credit_account (customer_id, currency, credit_limit, available) VALUES (?, 'ARS', ?, ?)",
+        return insert("INSERT INTO credit_account (customer_id, currency, credit_limit, available) VALUES (?, 'GTQ', ?, ?)",
                 customerId, new BigDecimal(creditLimit), new BigDecimal(available));
     }
 
