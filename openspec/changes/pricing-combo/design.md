@@ -25,17 +25,17 @@
 
 ## Ejemplo: combo de dos productos con impuestos distintos
 
-Datos del seed: `GAS-500` 4000 (GENERAL 21%), `YER-1KG` 6000 (REDUCED 10.5%). Combo `{GAS-500 mín 6, YER-1KG mín 3}` a **35000**. Carrito: GAS-500 ×6, YER-1KG ×3 (ninguna otra palanca aplica).
+Productos del seed: `GAS-500` 4000 (GENERAL, IVA 12%) y `LEC-1L` 6000 (REDUCED, exento 0%). El test agrega el combo `{GAS-500 mín 6, LEC-1L mín 3}` a **35000**. Carrito: GAS-500 ×6, LEC-1L ×3 (ninguna otra palanca aplica).
 
 Valor de lista cubierto = 6×4000 + 3×6000 = 42000; descuento = 42000 − 35000 = 7000, repartido por valor de lista (4/7 y 3/7).
 
 | Línea | qty | unit | gross (lista) | discount | base = gross − disc | tasa | tax |
 |---|---|---|---|---|---|---|---|
-| GAS-500 | 6 | 4000 | 24000 | 4000 | 20000 | 21% | 4200.00 |
-| YER-1KG | 3 | 6000 | 18000 | 3000 | 15000 | 10.5% | 1575.00 |
-| **Totales** | | | **42000** | **7000** | **35000** | | **5775.00** |
+| GAS-500 | 6 | 4000 | 24000 | 4000 | 20000 | 12% | 2400.00 |
+| LEC-1L | 3 | 6000 | 18000 | 3000 | 15000 | 0% | 0.00 |
+| **Totales** | | | **42000** | **7000** | **35000** | | **2400.00** |
 
-Entrada de descuento: `origin=COMBO, sourceId=<id del combo>, amount=7000.00`. `Σ base` = 35000 (= precio del combo); total a pagar = 35000 + 5775 = **40775.00**.
+Entrada de descuento: `origin=COMBO, sourceId=<id del combo>, amount=7000.00`. `Σ base` = 35000 (= precio del combo); total a pagar = 35000 + 2400 = **37400.00**.
 
 ## Risks / Trade-offs
 

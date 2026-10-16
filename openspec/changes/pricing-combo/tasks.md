@@ -15,7 +15,7 @@ Depends on `lever-priority` (each lever carries a `priority`). Assumptions from 
 
 ## 3. Golden tests and build
 
-- [ ] 3.1 Add the take-home's combo golden tests: the products that activate the combo do not appear as a loose discount; a combo with taxes (the tax enters the total); and a combo of two **different** products with **different** tax rates (e.g. GAS-500 21% + YER-1KG 10.5%) asserting each line keeps its list gross, its prorated discount share, its base `gross − discount`, its own tax rate, and the totals (see design.md's example)
+- [ ] 3.1 Add the take-home's combo golden tests: the products that activate the combo do not appear as a loose discount; a combo with taxes (the tax enters the total); and a combo of two **different** products with **different** tax rates (e.g. GAS-500 12% + LEC-1L 0%) asserting each line keeps its list gross, its prorated discount share, its base `gross − discount`, its own tax rate, and the totals (see design.md's example)
 - [ ] 3.2 Run `gradlew.bat clean test` and confirm the full suite passes with exit code `0`
 
 ## Workflow follow-up
