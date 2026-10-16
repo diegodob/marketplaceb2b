@@ -1,4 +1,4 @@
-package com.marketplaceb2b.persistence.repository;
+package com.marketplaceb2b.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -27,7 +27,6 @@ import com.marketplaceb2b.model.ScaleDiscount;
 import com.marketplaceb2b.model.ScaleTier;
 import com.marketplaceb2b.model.TaxRate;
 import com.marketplaceb2b.model.SalesOrder;
-import com.marketplaceb2b.persistence.PersistenceAccess;
 import com.marketplaceb2b.support.AbstractIntegrationTest;
 
 class RepositoryTest extends AbstractIntegrationTest {

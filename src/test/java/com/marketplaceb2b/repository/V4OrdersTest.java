@@ -1,4 +1,4 @@
-package com.marketplaceb2b.persistence;
+package com.marketplaceb2b.repository;
 
 import org.junit.jupiter.api.Test;
 

@@ -1,4 +1,4 @@
-package com.marketplaceb2b.persistence.repository;
+package com.marketplaceb2b.repository;
 
 import java.util.Map;
 import java.util.Optional;
@@ -8,7 +8,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
 import com.marketplaceb2b.model.Quote;
-import com.marketplaceb2b.persistence.PersistenceAccess;
 
 @Repository
 public class QuoteRepository {

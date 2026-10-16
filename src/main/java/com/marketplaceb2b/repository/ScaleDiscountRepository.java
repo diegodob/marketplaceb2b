@@ -1,4 +1,4 @@
-package com.marketplaceb2b.persistence.repository;
+package com.marketplaceb2b.repository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 import com.marketplaceb2b.model.DiscountTargetType;
 import com.marketplaceb2b.model.ScaleDiscount;
 import com.marketplaceb2b.model.ScaleTier;
-import com.marketplaceb2b.persistence.PersistenceAccess;
 
 @Repository
 public class ScaleDiscountRepository {

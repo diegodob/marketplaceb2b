@@ -1,4 +1,4 @@
-package com.marketplaceb2b.persistence.repository;
+package com.marketplaceb2b.repository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 
 import com.marketplaceb2b.model.Gift;
 import com.marketplaceb2b.model.GiftCondition;
-import com.marketplaceb2b.persistence.PersistenceAccess;
 
 @Repository
 public class GiftRepository {

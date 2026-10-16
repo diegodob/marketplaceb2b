@@ -1,4 +1,4 @@
-package com.marketplaceb2b.persistence.repository;
+package com.marketplaceb2b.repository;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -8,7 +8,6 @@ import java.util.Map;
 import org.springframework.stereotype.Repository;
 
 import com.marketplaceb2b.model.LedgerEntryType;
-import com.marketplaceb2b.persistence.PersistenceAccess;
 
 @Repository
 public class CreditLedgerRepository {

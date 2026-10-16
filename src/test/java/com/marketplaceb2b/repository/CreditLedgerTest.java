@@ -1,4 +1,4 @@
-package com.marketplaceb2b.persistence;
+package com.marketplaceb2b.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -1,4 +1,4 @@
-package com.marketplaceb2b.persistence.repository;
+package com.marketplaceb2b.repository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import com.marketplaceb2b.model.OutboxDestination;
 import com.marketplaceb2b.model.OutboxEventType;
-import com.marketplaceb2b.persistence.PersistenceAccess;
 
 @Repository
 public class OutboxRepository {

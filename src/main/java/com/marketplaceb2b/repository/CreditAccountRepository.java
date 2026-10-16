@@ -1,4 +1,4 @@
-package com.marketplaceb2b.persistence.repository;
+package com.marketplaceb2b.repository;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -8,7 +8,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 
 import com.marketplaceb2b.model.CreditAccount;
-import com.marketplaceb2b.persistence.PersistenceAccess;
 
 @Repository
 public class CreditAccountRepository {

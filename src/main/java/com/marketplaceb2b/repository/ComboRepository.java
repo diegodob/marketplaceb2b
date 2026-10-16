@@ -1,4 +1,4 @@
-package com.marketplaceb2b.persistence.repository;
+package com.marketplaceb2b.repository;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 
 import com.marketplaceb2b.model.Combo;
 import com.marketplaceb2b.model.ComboItem;
-import com.marketplaceb2b.persistence.PersistenceAccess;
 
 @Repository
 public class ComboRepository {
