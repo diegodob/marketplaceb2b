@@ -30,7 +30,7 @@ The `discounts`/`gifts` lists are present but empty, so the lever slices fill th
 
 **Reads.** A read for the current ruleset; a read of the cart products' `product_price` rows for the ruleset (unit price and tax category); a read of the ruleset's `tax_rate` rows. A product without a price, or a category without a rate, fails explicitly — never 0.
 
-**Rounding.** `gross = qty × unit_price`; `taxableBase = gross` (no discounts yet); `tax = taxableBase × rate`; each line's `taxableBase` and `tax` are set to the ruleset currency scale with the ruleset rounding mode (mapping the model `RoundingMode` to `java.math.RoundingMode`); the total is the sum of the rounded line values. All money is `BigDecimal`.
+**Rounding via a `Money` value object.** To avoid raw, error-prone `BigDecimal` arithmetic with scattered `setScale` calls, money is modelled by a `Money` record (`amount`, `scale`, `roundingMode`) built from the ruleset. Every operation on it returns a new `Money` already rounded to the currency scale with the ruleset mode — `times(qty)`, `times(factor)`, `percentage(rate)` (the tax = amount × rate / 100) and `plus(...)` (which rejects mixing different policies). The engine works in `Money` and unwraps to `BigDecimal` only at the DTO boundary, so the scale/rounding can never be forgotten. All money stays `BigDecimal` underneath.
 
 **Package.** The service and DTOs live in `com.marketplaceb2b.service` (DTOs may go in a `pricing` subpackage).
 
@@ -38,7 +38,7 @@ The `discounts`/`gifts` lists are present but empty, so the lever slices fill th
 
 - **DTO extensibility** → `discounts`/`gifts` are lists from the start; the lever slices only fill them. The credit field is added by its own change (a small contract change there).
 - **N reads per cart** → fine for the small carts here; a batch read by product ids is used.
-- **Rounding helper duplicated** → a single mapping from `RoundingMode` to `java.math.RoundingMode` in the service; the quote/confirmation reuse the stored, already-rounded values.
+- **Rounding policy duplication** → centralised in `Money`; the model `RoundingMode` maps to `java.math.RoundingMode` in one place. The quote/confirmation reuse the stored, already-rounded values.
 
 ## Open Questions
 
