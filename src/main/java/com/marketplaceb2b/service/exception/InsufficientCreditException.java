@@ -1,4 +1,4 @@
-package com.marketplaceb2b.service;
+package com.marketplaceb2b.service.exception;
 
 import java.math.BigDecimal;
 

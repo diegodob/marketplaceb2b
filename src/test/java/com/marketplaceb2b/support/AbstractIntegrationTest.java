@@ -45,6 +45,11 @@ public abstract class AbstractIntegrationTest {
         return jdbc.queryForObject("SELECT id FROM tenant WHERE name = 'Bebidas AR'", Long.class);
     }
 
+    protected long newTenant(String name) {
+        return insert("INSERT INTO tenant (name, country_id) VALUES (?, (SELECT id FROM country WHERE code = 'AR'))",
+                name);
+    }
+
     protected long arCustomerId() {
         return jdbc.queryForObject("SELECT id FROM customer WHERE name = 'Cliente 12'", Long.class);
     }

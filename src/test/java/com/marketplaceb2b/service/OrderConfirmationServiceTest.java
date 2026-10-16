@@ -10,6 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import com.marketplaceb2b.dto.OrderConfirmation;
+import com.marketplaceb2b.service.exception.IdempotencyConflictException;
+import com.marketplaceb2b.service.exception.InsufficientCreditException;
+import com.marketplaceb2b.service.exception.QuoteExpiredException;
 import com.marketplaceb2b.support.AbstractIntegrationTest;
 
 class OrderConfirmationServiceTest extends AbstractIntegrationTest {
@@ -123,6 +127,23 @@ class OrderConfirmationServiceTest extends AbstractIntegrationTest {
         service.confirm(tenant, quote, unique("KEY"));
         assertThatThrownBy(() -> service.confirm(tenant, quote, unique("KEY")))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void changingPricesAfterConfirmationDoesNotChangeTheOrder() {
+        long tenant = arTenantId();
+        long customer = arCustomerId();
+        long quote = newQuote(tenant, customer, arRulesetId(), paymentMethodId("CASH"), "93070.00",
+                Instant.now().plusSeconds(3600));
+
+        OrderConfirmation confirmation = service.confirm(tenant, quote, unique("KEY"));
+
+        jdbc.update("UPDATE product_price SET unit_price = 9999.0000 "
+                + "WHERE product_id = (SELECT id FROM product WHERE sku = 'GAS-500')");
+
+        BigDecimal orderAmount = jdbc.queryForObject("SELECT total FROM quote WHERE id = ?", BigDecimal.class, quote);
+        assertThat(orderAmount).isEqualByComparingTo("93070.00");
+        assertThat(count("SELECT COUNT(*) FROM sales_order WHERE id = ?", confirmation.orderId())).isEqualTo(1);
     }
 
     private BigDecimal available(long customerId) {
