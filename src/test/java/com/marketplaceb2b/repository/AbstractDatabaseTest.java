@@ -77,7 +77,8 @@ abstract class AbstractDatabaseTest {
     }
 
     protected long gtFiscalIdTypeId() {
-        return jdbc.queryForObject("SELECT id FROM fiscal_id_type WHERE code = 'NIT'", Long.class);
+        return jdbc.queryForObject("SELECT id FROM fiscal_id_type WHERE code = 'NIT' "
+                + "AND country_id = (SELECT id FROM country WHERE code = 'GT')", Long.class);
     }
 
     protected long newProduct(long tenantId, String sku) {

@@ -59,7 +59,24 @@ public abstract class AbstractIntegrationTest {
     }
 
     protected long paymentMethodId(String code) {
-        return jdbc.queryForObject("SELECT id FROM payment_method WHERE code = ?", Long.class, code);
+        return paymentMethodId(gtTenantId(), code);
+    }
+
+    protected long paymentMethodId(long tenantId, String code) {
+        return jdbc.queryForObject("SELECT id FROM payment_method WHERE tenant_id = ? AND code = ?", Long.class,
+                tenantId, code);
+    }
+
+    protected long coTenantId() {
+        return jdbc.queryForObject("SELECT id FROM tenant WHERE name = 'Bebidas CO'", Long.class);
+    }
+
+    protected long coCustomerId() {
+        return jdbc.queryForObject("SELECT id FROM customer WHERE name = 'Cliente CO'", Long.class);
+    }
+
+    protected long coRulesetId() {
+        return jdbc.queryForObject("SELECT id FROM ruleset WHERE version = 'CO-2026-10-01.1'", Long.class);
     }
 
     protected long newQuote(String total, Instant expiresAt) {
