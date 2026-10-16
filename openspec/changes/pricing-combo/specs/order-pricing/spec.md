@@ -18,7 +18,7 @@ The engine SHALL apply the applicable commercial levers in a fixed order given b
 
 ### Requirement: Combo step
 
-A combo SHALL apply when every item still has enough available units to reach its minimum quantity. Combos SHALL be applied in priority order. A combo SHALL cover the minimum quantities at its total price, units above the minimum SHALL be charged at the regular price, the saving SHALL be reported as a combo discount entry carrying its origin (the lever's type and id), and the combo's units SHALL be consumed.
+A combo SHALL apply when every item still has enough available units to reach its minimum quantity. Combos SHALL be applied in priority order. A combo SHALL cover the minimum quantities at its total price by recording, per covered line, a discount (its share of the difference) while the line keeps its list gross; units above the minimum SHALL be charged at the regular price; the saving SHALL be reported as a combo discount entry carrying its origin (the lever's type and id); and the combo's units SHALL be consumed. A line's taxable base SHALL be its list gross minus its discounts, and the tax SHALL be computed on that base.
 
 #### Scenario: Combo requires all minimums
 
@@ -39,3 +39,8 @@ A combo SHALL apply when every item still has enough available units to reach it
 
 - **WHEN** a combo applies to some units
 - **THEN** those units are marked consumed so a lower-priority lever does not discount them
+
+#### Scenario: Combo lowers the taxable base
+
+- **WHEN** a combo applies
+- **THEN** each covered line keeps its list gross, its taxable base is that gross minus its discount share, and the tax is computed on that base
