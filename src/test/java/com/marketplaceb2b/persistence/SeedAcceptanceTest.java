@@ -82,4 +82,24 @@ class SeedAcceptanceTest extends AbstractDatabaseTest {
                 Integer.class);
         assertThat(count).isZero();
     }
+
+    @Test
+    void frozenQuoteValuesSurviveALaterPriceChange() {
+        long tenant = id("SELECT id FROM tenant WHERE name = 'Bebidas AR'");
+        long ruleset = id("SELECT id FROM ruleset WHERE version = 'AR-2026-10-01.1'");
+        long customer = id("SELECT id FROM customer WHERE name = 'Cliente 12' AND tenant_id = " + tenant);
+        long payment = id("SELECT id FROM payment_method WHERE code = 'CASH' AND tenant_id = " + tenant);
+        long product = id("SELECT id FROM product WHERE sku = 'GAS-500' AND tenant_id = " + tenant);
+
+        long quote = newQuote(tenant, customer, ruleset, payment, "93070.00");
+        newQuoteLine(quote, product, 10, "4000.0000", "40000.00", "21.0000", "8400.00");
+
+        run("UPDATE product_price SET unit_price = 9999.0000 WHERE ruleset_id = ? AND product_id = ?",
+                ruleset, product);
+
+        assertThat(jdbc.queryForObject("SELECT unit_price FROM quote_line WHERE quote_id = ?", BigDecimal.class, quote))
+                .isEqualByComparingTo("4000.0000");
+        assertThat(jdbc.queryForObject("SELECT total FROM quote WHERE id = ?", BigDecimal.class, quote))
+                .isEqualByComparingTo("93070.00");
+    }
 }

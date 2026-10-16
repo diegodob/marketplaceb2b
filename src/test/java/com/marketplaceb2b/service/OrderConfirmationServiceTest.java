@@ -125,6 +125,23 @@ class OrderConfirmationServiceTest extends AbstractIntegrationTest {
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
+    @Test
+    void changingPricesAfterConfirmationDoesNotChangeTheOrder() {
+        long tenant = arTenantId();
+        long customer = arCustomerId();
+        long quote = newQuote(tenant, customer, arRulesetId(), paymentMethodId("CASH"), "93070.00",
+                Instant.now().plusSeconds(3600));
+
+        OrderConfirmation confirmation = service.confirm(tenant, quote, unique("KEY"));
+
+        jdbc.update("UPDATE product_price SET unit_price = 9999.0000 "
+                + "WHERE product_id = (SELECT id FROM product WHERE sku = 'GAS-500')");
+
+        BigDecimal orderAmount = jdbc.queryForObject("SELECT total FROM quote WHERE id = ?", BigDecimal.class, quote);
+        assertThat(orderAmount).isEqualByComparingTo("93070.00");
+        assertThat(count("SELECT COUNT(*) FROM sales_order WHERE id = ?", confirmation.orderId())).isEqualTo(1);
+    }
+
     private BigDecimal available(long customerId) {
         return jdbc.queryForObject("SELECT available FROM credit_account WHERE customer_id = ?", BigDecimal.class,
                 customerId);
