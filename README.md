@@ -87,7 +87,11 @@ capabilities land; nothing here should be read as a committed policy.
 
 ### Lever application order
 
-TBD — not yet defined.
+Partially defined.
+
+- **Combos.** A combo applies only when **all** of its items reach their minimum quantity. Among the applicable combos, the one with the **most items** is used; smaller combos are considered only if the larger ones do not apply. The combo covers the minimum quantities at its total price, and units **above** the minimum are charged at the regular price.
+
+The ordering of scales, gifts and taxes relative to combos is still to be defined.
 
 ### Rounding policy
 
