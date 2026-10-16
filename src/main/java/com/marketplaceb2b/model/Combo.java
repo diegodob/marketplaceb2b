@@ -12,6 +12,6 @@ public record Combo(
         Long id,
         @NotNull Long rulesetId,
         @NotNull String name,
-        @NotNull @Size(min = 1) @Valid List<ComboItem> items,
+        @NotNull @Size(min = 1) @Valid List<@NotNull ComboItem> items,
         @NotNull @PositiveOrZero BigDecimal comboPrice) {
 }

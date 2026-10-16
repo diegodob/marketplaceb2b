@@ -13,7 +13,7 @@ public record ScaleDiscount(
         @NotNull DiscountTargetType targetType,
         Long productId,
         Long familyId,
-        @NotNull @Size(min = 1) @Valid List<ScaleTier> tiers) {
+        @NotNull @Size(min = 1) @Valid List<@NotNull ScaleTier> tiers) {
 
     @AssertTrue(message = "target must be exactly one of productId (SKU) or familyId (FAMILY)")
     public boolean isTargetConsistent() {
