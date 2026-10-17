@@ -53,12 +53,12 @@ The project SHALL provide one documented command that compiles the code and runs
 
 ### Requirement: README
 
-The repository SHALL include a README that states the technology stack (Java 21, Spring Boot, WebFlux, Gradle) and the exact commands to run the service and its tests, plus the take-home-required sections for lever application order, rounding policy, and consistency model clearly marked as not yet defined.
+The repository SHALL include a README that states the technology stack (Java 21, Spring Boot, WebFlux, Gradle), the exact commands to run the service and its tests, and the design-notes sections for the lever application order, the rounding policy and the consistency model, kept up to date with the implemented design.
 
 #### Scenario: README documents stack, run, and test
 
 - **WHEN** a reader opens the README
-- **THEN** it names the technology stack, states the run command and the test command, and contains the lever-order, rounding-policy, and consistency-model headings marked as pending
+- **THEN** it names the technology stack, states the run command and the test command, and contains the lever-order, rounding-policy and consistency-model sections reflecting the current design
 
 ### Requirement: Automated health test
 
