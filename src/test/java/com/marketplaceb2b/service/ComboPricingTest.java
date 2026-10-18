@@ -200,11 +200,11 @@ class ComboPricingTest extends AbstractIntegrationTest {
 
     @Test
     void reportsNoGiftEntriesBecauseGiftsAreOutOfScope() {
-        PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 12)));
+        PriceBreakdown breakdown = service.price(guatemalaCart(map("LEC-1L", 9)));
 
         assertThat(breakdown.gifts()).isEmpty();
         assertThat(breakdown.discounts()).isEmpty();
-        assertThat(breakdown.total()).isEqualByComparingTo("53760.00");
+        assertThat(breakdown.total()).isEqualByComparingTo("54000.00");
     }
 
     private long product(long tenantId, String sku) {

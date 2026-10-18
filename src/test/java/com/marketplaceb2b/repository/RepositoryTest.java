@@ -19,6 +19,7 @@ import com.marketplaceb2b.model.Combo;
 import com.marketplaceb2b.model.DiscountTargetType;
 import com.marketplaceb2b.model.Gift;
 import com.marketplaceb2b.model.PaymentMethod;
+import com.marketplaceb2b.model.Product;
 import com.marketplaceb2b.model.ProductFamily;
 import com.marketplaceb2b.model.ProductPrice;
 import com.marketplaceb2b.model.Quote;
@@ -49,6 +50,8 @@ class RepositoryTest extends AbstractIntegrationTest {
     private OutboxRepository outbox;
     @Autowired
     private ProductFamilyRepository productFamilies;
+    @Autowired
+    private ProductRepository products;
     @Autowired
     private ScaleDiscountRepository scaleDiscounts;
     @Autowired
@@ -98,6 +101,21 @@ class RepositoryTest extends AbstractIntegrationTest {
         assertThat(loaded).hasSize(3);
         assertThat(loaded).allSatisfy(gift -> assertThat(gift.condition()).isNotNull());
         assertThat(loaded).allSatisfy(gift -> assertThat(gift.priority()).isEqualTo(5));
+    }
+
+    @Test
+    void productRepositoryScopesByIdsTenant() {
+        long guatemala = gtTenantId();
+        long colombia = coTenantId();
+        long gtGas = jdbc.queryForObject("SELECT id FROM product WHERE tenant_id = ? AND sku = 'GAS-500'",
+                Long.class, guatemala);
+        long coGas = jdbc.queryForObject("SELECT id FROM product WHERE tenant_id = ? AND sku = 'GAS-400'",
+                Long.class, colombia);
+
+        assertThat(products.findByIds(guatemala, List.of(gtGas, coGas)))
+                .extracting(Product::id).containsExactly(gtGas);
+        assertThat(products.findByIds(colombia, List.of(gtGas, coGas)))
+                .extracting(Product::id).containsExactly(coGas);
     }
 
     @Test

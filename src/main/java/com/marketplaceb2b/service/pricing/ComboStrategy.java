@@ -29,7 +29,8 @@ public class ComboStrategy implements LeverStrategy {
         List<ScheduledLever> applicable = new ArrayList<>();
         for (Combo combo : context.combos()) {
             if (applies(combo, context)) {
-                applicable.add(new ScheduledLever(this, combo.id(), combo.priority()));
+                applicable.add(new ScheduledLever(this, combo.id(), combo.priority(), LeverType.COMBO,
+                        TargetKind.NONE));
             }
         }
         return applicable;

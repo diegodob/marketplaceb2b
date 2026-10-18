@@ -17,12 +17,16 @@ import com.marketplaceb2b.dto.LineBreakdown;
 import com.marketplaceb2b.dto.PriceBreakdown;
 import com.marketplaceb2b.model.Combo;
 import com.marketplaceb2b.model.Money;
+import com.marketplaceb2b.model.Product;
 import com.marketplaceb2b.model.ProductPrice;
 import com.marketplaceb2b.model.Ruleset;
+import com.marketplaceb2b.model.ScaleDiscount;
 import com.marketplaceb2b.model.TaxRate;
 import com.marketplaceb2b.repository.ComboRepository;
 import com.marketplaceb2b.repository.ProductPriceRepository;
+import com.marketplaceb2b.repository.ProductRepository;
 import com.marketplaceb2b.repository.RulesetRepository;
+import com.marketplaceb2b.repository.ScaleDiscountRepository;
 import com.marketplaceb2b.repository.TaxRateRepository;
 import com.marketplaceb2b.service.exception.MissingPriceException;
 import com.marketplaceb2b.service.exception.MissingTaxRateException;
@@ -36,30 +40,39 @@ public class OrderPricingService {
 
     private final RulesetRepository rulesets;
     private final ProductPriceRepository productPrices;
+    private final ProductRepository products;
     private final TaxRateRepository taxRates;
     private final ComboRepository comboRepository;
+    private final ScaleDiscountRepository scaleRepository;
     private final PricingPipeline pipeline;
     private final Clock clock;
 
     public OrderPricingService(RulesetRepository rulesets, ProductPriceRepository productPrices,
-                               TaxRateRepository taxRates, ComboRepository comboRepository, PricingPipeline pipeline,
-                               Clock clock) {
+                               ProductRepository products, TaxRateRepository taxRates,
+                               ComboRepository comboRepository, ScaleDiscountRepository scaleRepository,
+                               PricingPipeline pipeline, Clock clock) {
         this.rulesets = rulesets;
         this.productPrices = productPrices;
+        this.products = products;
         this.taxRates = taxRates;
         this.comboRepository = comboRepository;
+        this.scaleRepository = scaleRepository;
         this.pipeline = pipeline;
         this.clock = clock;
     }
 
     public PriceBreakdown price(Cart cart) {
         Ruleset ruleset = currentRuleset(cart.tenantId());
-        Map<Long, ProductPrice> prices = pricesByProduct(ruleset, cart);
+        Set<Long> productIds = productIds(cart);
+        Map<Long, ProductPrice> prices = pricesByProduct(ruleset, productIds);
         Map<Long, BigDecimal> rates = ratesByCategory(ruleset);
         List<PricingLine> lines = priceLines(cart, ruleset, prices, rates);
         List<Combo> combos = comboRepository.findByRuleset(ruleset.id());
+        List<ScaleDiscount> scales = scaleRepository.findByRuleset(ruleset.id());
+        List<Product> cartProducts = products.findByIds(cart.tenantId(), productIds);
 
-        PricingContext context = new PricingContext(cart, ruleset, prices, rates, lines, combos);
+        PricingContext context = new PricingContext(cart, ruleset, prices, rates, lines, combos, scales,
+                cartProducts);
         pipeline.run(context);
 
         return breakdown(context);
@@ -109,11 +122,15 @@ public class OrderPricingService {
                 .orElseThrow(() -> new NoCurrentRulesetException(tenantId));
     }
 
-    private Map<Long, ProductPrice> pricesByProduct(Ruleset ruleset, Cart cart) {
+    private static Set<Long> productIds(Cart cart) {
         Set<Long> productIds = new LinkedHashSet<>();
         for (CartLine line : cart.lines()) {
             productIds.add(line.productId());
         }
+        return productIds;
+    }
+
+    private Map<Long, ProductPrice> pricesByProduct(Ruleset ruleset, Set<Long> productIds) {
         Map<Long, ProductPrice> byProduct = new HashMap<>();
         for (ProductPrice price : productPrices.findByRulesetAndProducts(ruleset.id(), productIds)) {
             byProduct.put(price.productId(), price);

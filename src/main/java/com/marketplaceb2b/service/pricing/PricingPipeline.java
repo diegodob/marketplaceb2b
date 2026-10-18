@@ -7,9 +7,10 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 /**
- * Applies the applicable levers in a fixed order: descending priority, ties broken by the lever id (and,
- * for full determinism, by the strategy class name). It never tries to minimize the total, and each
- * applied lever consumes the units it discounts, so a later lever never discounts the same units again.
+ * Applies the applicable levers in a fixed, deterministic order: descending priority; on a tie,
+ * combos before scales before gifts, a SKU scale before a FAMILY scale, then the newest lever (greater
+ * id) first. It never tries to minimize the total, and each applied lever consumes the units it
+ * discounts, so a later lever never discounts the same units again.
  */
 @Component
 public class PricingPipeline {
@@ -27,8 +28,9 @@ public class PricingPipeline {
         }
         scheduled.sort(Comparator
                 .comparingInt(ScheduledLever::priority).reversed()
-                .thenComparingLong(ScheduledLever::sourceId)
-                .thenComparing(lever -> lever.strategy().getClass().getName()));
+                .thenComparingInt(lever -> lever.type().ordinal())
+                .thenComparingInt(lever -> lever.target().ordinal())
+                .thenComparing(Comparator.comparingLong(ScheduledLever::sourceId).reversed()));
         for (ScheduledLever lever : scheduled) {
             lever.strategy().apply(context, lever.sourceId());
         }

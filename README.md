@@ -110,7 +110,8 @@ com.marketplaceb2b
 ├── model                          # domain types (records, enums, Money)
 ├── repository                     # PersistenceAccess + one repository per aggregate
 └── service                        # application logic
-    └── exception                  # domain exceptions
+    ├── exception                  # domain exceptions
+    └── pricing                    # lever pipeline and strategies
 ```
 
 Schema lives in `src/main/resources/db/migration` (`V1__schema.sql`, `V2__seed.sql`, `V3__product_family.sql`, `V4__levers.sql`, `V5__levers_seed.sql`, `V6__gift_taxable.sql`, `V7__lever_priority.sql`).
@@ -125,12 +126,12 @@ Implemented:
 - JDBC data-access layer (`com.marketplaceb2b.repository`: `PersistenceAccess` + repositories) with an append-only guard
 - Idempotent, atomic order confirmation (`OrderConfirmationService`): validates the quote, consumes credit when the method uses it, and writes the order, idempotency key, ledger entry and outbox events in one transaction
 - Order-pricing engine (`OrderPricingService`): resolves the tenant's current ruleset, reads prices and tax rates, and computes the gross, the discount, the taxable base, the tax and the total with per-line rounding
-- Priority-driven lever pipeline (`service.pricing`): independent lever strategies, applied by descending priority with exclusivity over consumed units, plus the **combo** lever
+- Priority-driven lever pipeline (`service.pricing`): independent lever strategies, applied by descending priority with exclusivity over consumed units, plus the **combo** and **scale** levers
 - Pricing endpoint `POST /api/v1/pricing` (`PricingController`), with validation and non-leaking error responses (`ApiExceptionHandler`)
 
 Pending:
 
-- Pricing engine — **scale** and **gift** levers (the pipeline and the combo are in place)
+- Pricing engine — the **gift** lever (the pipeline, the combo and the scale are in place)
 - **Quote creation** (persist an immutable quote from a cart)
 - **Credit-fits** check (does the order fit the cupo)
 - **Outbox relay** (delivery of pending events)
@@ -142,10 +143,10 @@ Pending:
 
 ### Lever application order
 
-The engine applies the commercial levers through a **pipeline of strategies** run in a fixed, configured order: **combo → scale → gift → tax**. Each strategy **consumes** the units it discounts, so a later strategy never discounts the same units again — this prevents double-discounting (a combo's units are excluded from the scale).
+The engine applies the commercial levers through a **pipeline of strategies** run in a fixed, configured order: **combo → scale → gift → tax**. Each strategy **consumes** the units it discounts, so a later strategy never discounts the same units again — this prevents double-discounting (a combo's units are excluded from the scale). Equal priorities are resolved deterministically: **combo → scale → gift**, a **SKU** scale before a **FAMILY** scale, then the newest lever (greater `id`); the engine never picks the lever that minimizes the total.
 
 - **Combo**: applies only when **all** of its items reach their minimum quantity. Among the applicable combos the engine picks one by a **fixed, documented priority** (never by minimizing the total). The minimum units go to the combo's total price and units **above** the minimum keep the regular price. The saving is reported as a combo entry with its origin.
-- **Scale**: targets a single product or a single family; the percentage of the reached tier applies to all of that target's units. When two scales could apply, the one giving the greater discount is used.
+- **Scale**: targets a single product or a single family; the **reached tier** (the greatest `from_qty` not above the target's available units) applies its percentage to **all** of the target's units. A family scale sums its products' units in the cart.
 - **Gift**: evaluated on the gross cart (before discounts); gifted units do not trigger other levers and are taxed only when the gift is marked `taxable`.
 - **Tax**: computed on the taxable base **after** the commercial discounts.
 

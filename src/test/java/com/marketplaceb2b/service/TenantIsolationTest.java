@@ -26,13 +26,13 @@ class TenantIsolationTest extends AbstractIntegrationTest {
     @Test
     void pricesEachTenantWithItsOwnCurrencyRatesAndScale() {
         PriceBreakdown guatemala = service.price(new Cart(gtTenantId(), gtCustomerId(), paymentMethodId("CASH"),
-                List.of(new CartLine(productId(gtTenantId(), "GAS-500"), 10))));
+                List.of(new CartLine(productId(gtTenantId(), "GAS-500"), 5))));
         PriceBreakdown colombia = service.price(new Cart(coTenantId(), coCustomerId(), paymentMethodId(coTenantId(), "CASH"),
                 List.of(new CartLine(productId(coTenantId(), "GAS-400"), 10))));
 
         assertThat(guatemala.currency()).isEqualTo("GTQ");
-        assertThat(guatemala.totalTax()).isEqualByComparingTo("4800.00");
-        assertThat(guatemala.total()).isEqualByComparingTo("44800.00");
+        assertThat(guatemala.totalTax()).isEqualByComparingTo("2400.00");
+        assertThat(guatemala.total()).isEqualByComparingTo("22400.00");
         assertThat(guatemala.total().scale()).isEqualTo(2);
 
         assertThat(colombia.currency()).isEqualTo("COP");
