@@ -28,6 +28,27 @@ See proposal.md — Why. The pipeline and the combo and scale strategies exist (
 
 **Gift entries, not lines.** The free units are reported in the `gifts` list with their quantity, not as a zero-price line (the take-home's breakdown).
 
+**Relationship with the other levers.** The combo and the scale reduce the cart's lines and consume units; the gift does neither. Its condition is read from the gross cart, so a combo or a scale can never cancel a gift, and the gifted units are not cart units, so a gift can never trigger a combo or a scale. The gift only adds output: a `GiftBreakdown` and, when taxable, tax on the totals. Order-wise the gift runs after the discounts (its seeded priority is the lowest), but that order does not change who qualifies.
+
+## Example: two products plus a taxable gift
+
+Cart: `GAS-500` ×12 (4000, 12%) and `LEC-1L` ×4 (6000, 0%). The seeded SKU scale `12 → 3%` applies to GAS (it beats the family scale on a priority tie). The gift condition `GAS-500 ≥ 12` grants `AGU-500` ×1, taxable. The seeded gifts are not taxable; the example marks the gift taxable to show its tax.
+
+| Line | qty | unit | gross | discount | base | rate | tax |
+|---|---|---|---|---|---|---|---|
+| GAS-500 | 12 | 4000 | 48000.00 | 1440.00 | 46560.00 | 12% | 5587.20 |
+| LEC-1L | 4 | 6000 | 24000.00 | 0.00 | 24000.00 | 0% | 0.00 |
+
+Discount entry: `SCALE, sourceId=<SKU scale>, detail="Escala producto 12+ (3%)", amount=1440.00`.
+
+Gift entry: `AGU-500` ×1, taxable, tax = 2500 × 12% = 300.00 (not a paid line, so it is not in the bases).
+
+| grossSubtotal | totalDiscounts | totalTaxableBase | totalTax | total |
+|---|---|---|---|---|
+| 72000.00 | 1440.00 | 70560.00 | 5887.20 | 76447.20 |
+
+The seed has three gift conditions; a cart that meets them accumulates their gifts. With the seeded `AGU` ×1, ×1 and ×2 all taxable, the gift tax would be 4 × 300.00 = 1200.00; the example above uses one condition for clarity.
+
 ## Risks / Trade-offs
 
 - **A taxable gift's tax has no paid base** → the total exceeds the sum of the line taxes by the gift tax. Documented and asserted.
