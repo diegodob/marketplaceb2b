@@ -2,7 +2,7 @@
 
 Multi-tenant B2B marketplace API for the order flow: catalog → cart → checkout (quote) → confirmation → history.
 
-A Java 21 / Spring Boot WebFlux service. This repository contains the order-flow foundation: an immutable domain model, a Flyway-managed schema (H2 in PostgreSQL compatibility mode), a JDBC data-access layer with repositories, an order-pricing engine baseline, and an idempotent order-confirmation service. The lever application, quote creation, outbox relay and HTTP endpoints are still pending (see [Scope](#scope)).
+A Java 21 / Spring Boot WebFlux service. This repository contains the order-flow foundation: an immutable domain model, a Flyway-managed schema (H2 in PostgreSQL compatibility mode), a JDBC data-access layer with repositories, an order-pricing engine with a priority-driven lever pipeline (combo), an idempotent order-confirmation service, and an HTTP endpoint that prices a cart. The remaining levers, quote creation, outbox relay, the order endpoint and the ADR are still pending (see [Scope](#scope)).
 
 ## Stack
 
@@ -45,6 +45,59 @@ gradlew.bat clean test
 ./gradlew clean test
 ```
 
+## Endpoints
+
+### `POST /api/v1/pricing`
+
+Prices a cart against the tenant's current rules and returns the breakdown, per line and in totals.
+
+Request:
+
+```json
+{
+  "tenantId": 1,
+  "customerId": 1,
+  "paymentMethodId": 1,
+  "lines": [
+    { "productId": 1, "qty": 6 },
+    { "productId": 2, "qty": 6 }
+  ]
+}
+```
+
+Response `200` (the seeded combo `Gaseosa + Agua x6` applies):
+
+```json
+{
+  "tenantId": 1,
+  "rulesetId": 1,
+  "currency": "GTQ",
+  "lines": [
+    { "productId": 1, "qty": 6, "unitPrice": 4000.0000, "gross": 24000.00, "discount": 11692.31,
+      "taxableBase": 12307.69, "taxRate": 12.0000, "tax": 1476.92 },
+    { "productId": 2, "qty": 6, "unitPrice": 2500.0000, "gross": 15000.00, "discount": 7307.69,
+      "taxableBase": 7692.31, "taxRate": 12.0000, "tax": 923.08 }
+  ],
+  "discounts": [ { "origin": "COMBO", "sourceId": 1, "detail": "Gaseosa + Agua x6", "amount": 19000.00 } ],
+  "gifts": [],
+  "grossSubtotal": 39000.00,
+  "totalDiscounts": 19000.00,
+  "totalTaxableBase": 20000.00,
+  "totalTax": 2400.00,
+  "total": 22400.00
+}
+```
+
+Errors carry a stable `code`, a clear `message` and optional `details`. The body never exposes internal identifiers or exception text:
+
+| Status | `code` | When |
+|---|---|---|
+| 400 | `INVALID_REQUEST` | the cart has no tenant, no lines, or a non-positive quantity (a malformed body included) |
+| 422 | `PRODUCT_NOT_SELLABLE` | a cart product has no price in the tenant's current rules |
+| 503 | `STORE_PRICING_UNAVAILABLE` | the tenant has no pricing in force |
+| 500 | `PRICING_MISCONFIGURED` | a product's tax category has no rate |
+| 500 | `INTERNAL_ERROR` | anything else (the detail is logged, not returned) |
+
 ## Structure
 
 Packages under `com.marketplaceb2b` (source root `src/main/java`):
@@ -60,7 +113,7 @@ com.marketplaceb2b
     └── exception                  # domain exceptions
 ```
 
-Schema lives in `src/main/resources/db/migration` (`V1__schema.sql`, `V2__seed.sql`, `V3__product_family.sql`, `V4__levers.sql`, `V5__levers_seed.sql`, `V6__gift_taxable.sql`).
+Schema lives in `src/main/resources/db/migration` (`V1__schema.sql`, `V2__seed.sql`, `V3__product_family.sql`, `V4__levers.sql`, `V5__levers_seed.sql`, `V6__gift_taxable.sql`, `V7__lever_priority.sql`).
 
 ## Scope
 
@@ -68,18 +121,20 @@ Implemented:
 
 - Bootable Java 21 Spring Boot WebFlux service; `GET /api/v1/health`
 - Immutable, validated domain model (records + Bean Validation): countries, tenants, tax categories, rulesets, tax rates, product families, products, prices, payment methods, customers, credit accounts, quotes/lines, orders, idempotency keys, credit ledger, outbox, and the commercial levers (scale discounts, combos, gifts)
-- Flyway schema: `V1__schema.sql` (tables), `V2__seed.sql` (example data), `V3__product_family.sql`, `V4__levers.sql`, `V5__levers_seed.sql`, `V6__gift_taxable.sql`
+- Flyway schema: `V1__schema.sql` (tables), `V2__seed.sql` (example data), `V3__product_family.sql`, `V4__levers.sql`, `V5__levers_seed.sql`, `V6__gift_taxable.sql`, `V7__lever_priority.sql`
 - JDBC data-access layer (`com.marketplaceb2b.repository`: `PersistenceAccess` + repositories) with an append-only guard
 - Idempotent, atomic order confirmation (`OrderConfirmationService`): validates the quote, consumes credit when the method uses it, and writes the order, idempotency key, ledger entry and outbox events in one transaction
-- Order-pricing engine **baseline** (`OrderPricingService`): resolves the tenant's current ruleset, reads prices and tax rates, and computes the gross value, taxable base, tax and total with per-line rounding
+- Order-pricing engine (`OrderPricingService`): resolves the tenant's current ruleset, reads prices and tax rates, and computes the gross, the discount, the taxable base, the tax and the total with per-line rounding
+- Priority-driven lever pipeline (`service.pricing`): independent lever strategies, applied by descending priority with exclusivity over consumed units, plus the **combo** lever
+- Pricing endpoint `POST /api/v1/pricing` (`PricingController`), with validation and non-leaking error responses (`ApiExceptionHandler`)
 
 Pending:
 
-- Pricing engine — **levers**: the strategy pipeline that applies combos, scale discounts and gifts, and the golden tests
+- Pricing engine — **scale** and **gift** levers (the pipeline and the combo are in place)
 - **Quote creation** (persist an immutable quote from a cart)
 - **Credit-fits** check (does the order fit the cupo)
 - **Outbox relay** (delivery of pending events)
-- **HTTP endpoints** (quote, `POST /orders` with an idempotency key)
+- **HTTP endpoints** for quote creation and `POST /orders` with an idempotency key
 - **ADR**
 - Optional Angular/Flutter front end
 
