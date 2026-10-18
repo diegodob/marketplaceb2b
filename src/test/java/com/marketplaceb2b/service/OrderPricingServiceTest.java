@@ -29,7 +29,7 @@ class OrderPricingServiceTest extends AbstractIntegrationTest {
     @Test
     void pricesASeededCart() {
         Cart cart = new Cart(gtTenantId(), gtCustomerId(), paymentMethodId("CASH"), List.of(
-                new CartLine(productId("GAS-500"), 10),
+                new CartLine(productId("GAS-500"), 9),
                 new CartLine(productId("LEC-1L"), 4),
                 new CartLine(productId("AGU-500"), 5)));
 
@@ -37,10 +37,10 @@ class OrderPricingServiceTest extends AbstractIntegrationTest {
 
         assertThat(breakdown.currency()).isEqualTo("GTQ");
         assertThat(breakdown.lines()).hasSize(3);
-        assertThat(breakdown.grossSubtotal()).isEqualByComparingTo("76500.00");
-        assertThat(breakdown.totalTax()).isEqualByComparingTo("6300.00");
-        assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("76500.00");
-        assertThat(breakdown.total()).isEqualByComparingTo("82800.00");
+        assertThat(breakdown.grossSubtotal()).isEqualByComparingTo("72500.00");
+        assertThat(breakdown.totalTax()).isEqualByComparingTo("5820.00");
+        assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("72500.00");
+        assertThat(breakdown.total()).isEqualByComparingTo("78320.00");
         assertThat(breakdown.discounts()).isEmpty();
         assertThat(breakdown.gifts()).isEmpty();
         assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("0.00");
