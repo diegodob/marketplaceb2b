@@ -48,3 +48,24 @@ An applied scale SHALL consume the units it discounts and SHALL report the savin
 
 - **WHEN** a scale applies
 - **THEN** the saving appears as a scale entry carrying the source lever (its type and id) and the amount
+
+## MODIFIED Requirements
+
+### Requirement: Pricing pipeline
+
+The engine SHALL apply the applicable commercial levers in a fixed order given by each lever's `priority` (highest first; on a tie, combos before scales before gifts, a SKU scale before a FAMILY scale, then the newest lever by `id`), and never by minimizing the total. Each applied lever SHALL consume the units it discounts, so a later lever never discounts the same units again. A line's taxable base SHALL be its list gross minus its discounts, and the tax SHALL be computed on that base.
+
+#### Scenario: Levers apply in priority order
+
+- **WHEN** a cart is priced
+- **THEN** the applicable levers are applied from the highest priority to the lowest, and never by trying to minimize the total
+
+#### Scenario: Consumed units are not discounted twice
+
+- **WHEN** a lever has discounted some units
+- **THEN** a later lever does not discount those units again
+
+#### Scenario: Same priority is resolved deterministically
+
+- **WHEN** two applicable levers share a priority
+- **THEN** combos run before scales before gifts, a SKU scale before a FAMILY scale, and the newer lever (greater `id`) before the older one

@@ -8,6 +8,7 @@
 
 - [ ] 2.1 Load the cart products and the ruleset's scales in `OrderPricingService.price`, carry the product -> family mapping and the scales in `PricingContext`, and verify the project compiles
 - [ ] 2.2 Implement `ScaleDiscountStrategy`: applicable when the target's available units reach the first tier; the reached tier's percentage applies to all the target's available units (a SKU scale covers one product, a FAMILY scale sums its lines); add the per-line discounts, consume the covered units and record a SCALE entry with the lever's type and id
+- [ ] 2.3 Apply the deterministic tie-break in `PricingPipeline`: priority desc; on a tie, combos before scales before gifts, a SKU scale before a FAMILY scale, then the greater `id` first
 
 ## 3. Tests
 
@@ -17,7 +18,7 @@
 
 ## 4. Documentation
 
-- [ ] 4.1 Correct the README's scale note: priority over "the greater discount", and the reached-tier-on-all-units rule
+- [ ] 4.1 Correct the README's scale note (priority over "the greater discount"; the reached tier applies its percentage to all the target's units) and document the tie-break (combo → scale → gift; SKU before FAMILY; newest id first)
 
 ## Workflow follow-up
 

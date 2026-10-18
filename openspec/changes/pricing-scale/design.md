@@ -19,6 +19,8 @@ See proposal.md — Why. The lever pipeline exists (`service.pricing`: `LeverStr
 
 **Reached tier on all units.** Once the target's units reach a tier, that tier's percentage applies to **all** of the target's units (a whole-line percentage per threshold). Example: tiers `12 → 3%` and `24 → 7%`, 30 units bought → all 30 at 7%. Alternative: progressive brackets (12–23 at 3%, 24–30 at 7%) — rejected by the product owner: the distributor's scale is a single percentage per threshold.
 
+**Deterministic tie-break.** Priority is the primary key. On a tie, the engine resolves, in order: (1) **type** — combos, then scales, then gifts (the documented order, never "the greater discount"); (2) between **scales**, a **SKU** target before a **FAMILY** target (the more specific lever wins); (3) the **newest lever** first — the greater `id`, because the latest promotion should be more relevant than one created earlier. Alternative: ordering by the strategy class name — rejected: arbitrary across types. Alternative: ascending id — rejected: the newest promotion should win.
+
 **The scale is a `LeverStrategy`.** `ScaleDiscountStrategy` reports its applicable scales and applies one by id, exactly like the combo strategy; the pipeline orders it by priority and the consumed units give exclusivity.
 
 **Product → family resolution with a tenant-scoped lookup.** A new `ProductRepository.findByIds(tenantId, productIds)` returns the cart's products with their `family_id`. Alternative: query products by `family_id` alone — rejected: it is not tenant-scoped, and `data-model`'s multi-tenant isolation requirement demands a tenant filter and a test. A family scale sums the available units of the cart lines whose product belongs to the family.
