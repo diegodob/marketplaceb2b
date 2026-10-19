@@ -2,7 +2,7 @@
 
 Multi-tenant B2B marketplace API for the order flow: catalog → cart → checkout (quote) → confirmation → history.
 
-A Java 21 / Spring Boot WebFlux service. This repository contains the order-flow foundation: an immutable domain model, a Flyway-managed schema (H2 in PostgreSQL compatibility mode), a JDBC data-access layer with repositories, an order-pricing engine with a priority-driven lever pipeline (combo, scale and gift) and a credit fit, an idempotent order-confirmation service, and HTTP endpoints that price a cart and create an immutable quote. Outbox relay, the order endpoint and the ADR are still pending (see [Scope](#scope)).
+A Java 21 / Spring Boot WebFlux service. This repository contains the order-flow foundation: an immutable domain model, a Flyway-managed schema (H2 in PostgreSQL compatibility mode), a JDBC data-access layer with repositories, an order-pricing engine with a priority-driven lever pipeline (combo, scale and gift) and a credit fit, an idempotent order-confirmation service, and HTTP endpoints that price a cart, create an immutable quote, confirm an order and read it back. The outbox **relay** is still pending (see [Scope](#scope)). The design decisions are in the [ADR](docs/ADR.md); the data model is in the [DER](docs/DER.md) and request/response examples in [docs/CURL-EXAMPLES.md](docs/CURL-EXAMPLES.md).
 
 ## Stack
 
@@ -43,6 +43,16 @@ gradlew.bat clean test
 
 # macOS / Linux
 ./gradlew clean test
+```
+
+Run the tests and, only if they pass, start the service:
+
+```
+# Windows
+.\verify-and-run.bat
+
+# macOS / Linux
+./verify-and-run.sh
 ```
 
 ## Endpoints
@@ -177,8 +187,6 @@ Implemented:
 Pending:
 
 - **Outbox relay** (delivery of pending events)
-- **ADR**
-- Optional Angular/Flutter front end
 
 ## Design notes
 
@@ -207,7 +215,7 @@ When the payment method uses credit, the breakdown carries `creditFit` (`fits`, 
 
 `POST /quotes` prices the cart and writes, in one transaction, the `quote` (the immutable header), the `quote_line` (the paid lines, with the frozen unit price, tax rate, base and tax), the `quote_line_discount` (the applied discounts per line, each with the lever that produced it) and the `quote_gift` (the gifted units, with their value and tax). The quote and the order reference their customer with a **composite foreign key** `(tenant_id, customer_id)`, and the order its quote with `(tenant_id, quote_id)`, so a cross-tenant reference is impossible at the database.
 
-### Known simplifications & rules (for the ADR)
+### Known simplifications & rules
 
 - **Scale discounts target a single product or a single family.** A scale that should span several targets is modelled as several scale discounts. Tiers are cumulative and strictly increasing by starting quantity.
 - **Combos are chosen by priority, not by size or price.** A real system would let the distributor set explicit priorities; the engine never minimizes the total for the buyer. Tiers are applications of a fixed order.
