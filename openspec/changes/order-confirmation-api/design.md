@@ -23,11 +23,11 @@
 
 - **The endpoint delegates; it never prices.** The body carries the quote's public id only; the service re-reads the quote and its frozen total.
 - **The key is the `Idempotency-Key` header** (the take-home's contract); a missing key is a 400.
-- **The response is 201 `{number, total}`**, where `number` is the tenant-scoped `sales_order.id`.
+- **The response is 201 `{number, total, replayed}`**, where `number` is the tenant-scoped **public number** (`sales_order.public_number`), the client-facing reference; `replayed` is `true` when the order already existed.
 - **The replay is a 201** with the same body, matching "the retry returns the same result".
 - **The conflicts are 409**: the same key with another quote (`IDEMPOTENCY_CONFLICT`) and the same quote with another key (`QUOTE_ALREADY_CONFIRMED`, via `SalesOrderRepository.findByQuote`).
 - **The double tap resolves by the database constraint**: the loser catches the `DataIntegrityViolationException`, re-reads by the key in a fresh read-only transaction (the controller is not transactional, so the failed insert does not poison it) and returns the replay; if the key is not found it is the quote conflict (409).
-- **The GET is tenant-scoped** on `(tenant_id, number)`; another tenant gets a 404, so existence does not leak.
+- **The GET is tenant-scoped** on `(tenant_id, public_number)`; another tenant gets a 404, so existence does not leak.
 - **The quote's public id is exposed in the GET** for the client's reference; the quote's internal id stays internal.
 
 ## Risks / Trade-offs

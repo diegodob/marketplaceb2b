@@ -117,6 +117,30 @@ Response `201`:
 
 Errors: `400 INVALID_REQUEST`, `422 CUSTOMER_NOT_FOUND` (the customer is not the tenant's), `422 PAYMENT_METHOD_NOT_FOUND`, and the pricing failures above (`PRODUCT_NOT_SELLABLE`, `STORE_PRICING_UNAVAILABLE`, `PRICING_MISCONFIGURED`).
 
+### `POST /api/v1/orders`
+
+Confirms a quote. It re-reads the quote and its **stored** total: the body never carries amounts. Returns **201** with the tenant-scoped order number, the stored total and whether the response is a replay.
+
+Headers: `X-Tenant-Id` and `Idempotency-Key` (both required).
+
+```json
+{ "quotePublicId": "8f14e45f-..." }
+```
+
+Response `201`:
+
+```json
+{ "number": "5c2f1d6a-...", "total": 30000.00, "replayed": false }
+```
+
+The retry with the same key and quote returns the same 201 and the same order (`replayed: true`) and the cupo is consumed once. A key reused for another quote is `409 IDEMPOTENCY_CONFLICT`; a quote confirmed under another key is `409 QUOTE_ALREADY_CONFIRMED`. Two simultaneous requests (the double tap) still create **one** order and both receive the same 201.
+
+Errors: `404 QUOTE_NOT_FOUND`, `422 QUOTE_EXPIRED`, `422 INSUFFICIENT_CREDIT`, `422 NO_CREDIT_ACCOUNT`, `409 IDEMPOTENCY_CONFLICT`, `409 QUOTE_ALREADY_CONFIRMED`.
+
+### `GET /api/v1/orders/{number}`
+
+Returns the order and its **frozen** lines (header `X-Tenant-Id`). Another tenant or an unknown number is **404**.
+
 ## Structure
 
 Packages under `com.marketplaceb2b` (source root `src/main/java`):
@@ -148,11 +172,11 @@ Implemented:
 - Priority-driven lever pipeline (`service.pricing`): independent lever strategies, applied by descending priority with exclusivity over consumed units, plus the **combo**, **scale** and **gift** levers
 - Pricing endpoint `POST /api/v1/pricing` (`PricingController`), with validation, non-leaking error responses (`ApiExceptionHandler`) and the credit fit when the payment method uses credit
 - Quote endpoint `POST /api/v1/quotes` (`QuoteController` + `QuoteWriter`): persists the immutable quote, its frozen lines, the per-line applied discounts (`quote_line_discount`) and the gifts (`quote_gift`), with the tenant-consistent composite foreign keys
+- Order endpoints (`OrderController`): `POST /api/v1/orders` with an `Idempotency-Key` (the replay, the two conflicts and the concurrent double tap resolved by the database constraints) and the tenant-scoped `GET /api/v1/orders/{number}`
 
 Pending:
 
 - **Outbox relay** (delivery of pending events)
-- **HTTP endpoint** for `POST /orders` with an idempotency key
 - **ADR**
 - Optional Angular/Flutter front end
 
