@@ -1,22 +1,27 @@
 # Tasks
 
-## 1. Load the gifts
+## 1. Model and context
 
-- [ ] 1.1 Load the ruleset's gifts and the gift products' prices/rates in `OrderPricingService`, carry them in `PricingContext`, and add the gift taxes to the breakdown's total tax and total; verify the project compiles
+- [ ] 1.1 Add `GIFT` to `DiscountOrigin`, a gift mark to `LineBreakdown`, and the gift mark plus taxability to `PricingLine`; let `PricingContext` accept added lines; make the combo and scale strategies skip gift lines
+- [ ] 1.2 Load the ruleset's gifts and the gift products' prices/rates in `OrderPricingService` and carry them in `PricingContext`; verify the project compiles
 
 ## 2. Gift strategy
 
-- [ ] 2.1 Implement `GiftStrategy`: applicable when the condition is met on the gross cart (quantity of the product/family and/or the gross value, combined with AND); every met condition records a `GiftBreakdown` with its quantity, `taxable` flag and tax; it does not consume units or touch the lines
+- [ ] 2.1 Implement `GiftStrategy`: applicable when the condition is met on the gross cart (the quantity of the product/family and/or the gross value, combined with AND, excluding gift lines); for every met condition add a marked gift line (quantity and unit price) and a `GIFT` discount equal to its value
 
-## 3. Tests
+## 3. Tax and totals
 
-- [ ] 3.1 Happy path: a quantity condition, an amount condition, both (AND), a taxable gift (its tax enters the total) and a non-taxable gift
-- [ ] 3.2 Edge cases: no condition met; several conditions accumulate; a family condition sums its products; a gift does not change the scale/combo; different tax rates; the CO currency scale; another tenant's gift does not apply
-- [ ] 3.3 Run `gradlew.bat clean test` and confirm the full suite passes with exit code `0`
+- [ ] 3.1 In the breakdown, compute a taxable gift line's tax on its gross (the documented exception) and add it to the total tax and the total; a non-taxable gift line pays no tax; keep the `gifts` summary derived from the gift lines
 
-## 4. Documentation
+## 4. Tests
 
-- [ ] 4.1 Document the gift rule in the README (gross cart, accumulation, gift tax) and update the scope
+- [ ] 4.1 Happy path: a quantity condition, an amount condition, both (AND), a taxable gift (its tax on the gross enters the total) and a non-taxable gift
+- [ ] 4.2 Edge cases: no condition met; several conditions accumulate; a gift line does not reach the scale/combo; the gift is a marked line with a GIFT discount; different tax rates; the CO currency scale; another tenant's gift does not apply
+- [ ] 4.3 Run `gradlew.bat clean test` and confirm the full suite passes with exit code `0`
+
+## 5. Documentation
+
+- [ ] 5.1 Document the gift model in the README (line + GIFT discount, tax on the gross for taxable gifts, isolation, gross-cart condition) and update the scope; note the quote-creation persistence decision
 
 ## Workflow follow-up
 
