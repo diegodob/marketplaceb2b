@@ -6,8 +6,9 @@ import com.marketplaceb2b.model.Money;
 import com.marketplaceb2b.model.Ruleset;
 
 /**
- * The mutable state of one cart line while the levers run: the list gross is fixed, the levers add to
- * the line's discount and consume units, and the taxable base is the gross minus the discount.
+ * The mutable state of one line while the levers run: the list gross is fixed, the levers add to the
+ * line's discount and consume units, and the taxable base is the gross minus the discount. A gift line
+ * is marked and taxability decides whether its tax is charged on the gross (the documented exception).
  */
 public final class PricingLine {
 
@@ -16,21 +17,32 @@ public final class PricingLine {
     private final BigDecimal unitPrice;
     private final BigDecimal rate;
     private final Money gross;
+    private final boolean gift;
+    private final boolean taxable;
     private Money discount;
     private int consumedUnits;
 
-    private PricingLine(long productId, int qty, BigDecimal unitPrice, BigDecimal rate, Money gross) {
+    private PricingLine(long productId, int qty, BigDecimal unitPrice, BigDecimal rate, Money gross, boolean gift,
+                        boolean taxable) {
         this.productId = productId;
         this.qty = qty;
         this.unitPrice = unitPrice;
         this.rate = rate;
         this.gross = gross;
+        this.gift = gift;
+        this.taxable = taxable;
         this.discount = Money.zero(gross.scale(), gross.roundingMode());
     }
 
     public static PricingLine of(long productId, int qty, BigDecimal unitPrice, BigDecimal rate, Ruleset ruleset) {
         Money gross = Money.of(unitPrice.multiply(BigDecimal.valueOf(qty)), ruleset);
-        return new PricingLine(productId, qty, unitPrice, rate, gross);
+        return new PricingLine(productId, qty, unitPrice, rate, gross, false, false);
+    }
+
+    static PricingLine giftLine(long productId, int qty, BigDecimal unitPrice, BigDecimal rate, boolean taxable,
+                                Ruleset ruleset) {
+        Money gross = Money.of(unitPrice.multiply(BigDecimal.valueOf(qty)), ruleset);
+        return new PricingLine(productId, qty, unitPrice, rate, gross, true, taxable);
     }
 
     public long productId() {
@@ -59,6 +71,14 @@ public final class PricingLine {
 
     public Money taxableBase() {
         return gross.minus(discount);
+    }
+
+    public boolean gift() {
+        return gift;
+    }
+
+    public boolean taxable() {
+        return taxable;
     }
 
     public int consumedUnits() {

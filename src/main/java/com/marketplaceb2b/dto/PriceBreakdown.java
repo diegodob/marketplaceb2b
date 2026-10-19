@@ -9,7 +9,6 @@ public record PriceBreakdown(
         String currency,
         List<LineBreakdown> lines,
         List<DiscountBreakdown> discounts,
-        List<GiftBreakdown> gifts,
         BigDecimal grossSubtotal,
         BigDecimal totalDiscounts,
         BigDecimal totalTaxableBase,

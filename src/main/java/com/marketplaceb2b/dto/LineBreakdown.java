@@ -10,5 +10,6 @@ public record LineBreakdown(
         BigDecimal discount,
         BigDecimal taxableBase,
         BigDecimal taxRate,
-        BigDecimal tax) {
+        BigDecimal tax,
+        boolean gift) {
 }

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -21,6 +22,11 @@ class OrderPricingServiceTest extends AbstractIntegrationTest {
 
     @Autowired
     private OrderPricingService service;
+
+    @BeforeEach
+    void clearGifts() {
+        jdbc.update("DELETE FROM gift WHERE ruleset_id = ?", gtRulesetId());
+    }
 
     private long productId(String sku) {
         return jdbc.queryForObject("SELECT id FROM product WHERE sku = ?", Long.class, sku);
@@ -42,7 +48,6 @@ class OrderPricingServiceTest extends AbstractIntegrationTest {
         assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("72500.00");
         assertThat(breakdown.total()).isEqualByComparingTo("78320.00");
         assertThat(breakdown.discounts()).isEmpty();
-        assertThat(breakdown.gifts()).isEmpty();
         assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("0.00");
     }
 

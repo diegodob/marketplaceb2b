@@ -62,7 +62,7 @@ public class ScaleDiscountStrategy implements LeverStrategy {
     private static List<PricingLine> coveredLines(ScaleDiscount scale, PricingContext context) {
         List<PricingLine> covered = new ArrayList<>();
         for (PricingLine line : context.lines()) {
-            if (matches(scale, line, context)) {
+            if (!line.gift() && matches(scale, line, context)) {
                 covered.add(line);
             }
         }

@@ -2,7 +2,7 @@
 
 Multi-tenant B2B marketplace API for the order flow: catalog → cart → checkout (quote) → confirmation → history.
 
-A Java 21 / Spring Boot WebFlux service. This repository contains the order-flow foundation: an immutable domain model, a Flyway-managed schema (H2 in PostgreSQL compatibility mode), a JDBC data-access layer with repositories, an order-pricing engine with a priority-driven lever pipeline (combo), an idempotent order-confirmation service, and an HTTP endpoint that prices a cart. The remaining levers, quote creation, outbox relay, the order endpoint and the ADR are still pending (see [Scope](#scope)).
+A Java 21 / Spring Boot WebFlux service. This repository contains the order-flow foundation: an immutable domain model, a Flyway-managed schema (H2 in PostgreSQL compatibility mode), a JDBC data-access layer with repositories, an order-pricing engine with a priority-driven lever pipeline (combo, scale and gift), an idempotent order-confirmation service, and an HTTP endpoint that prices a cart. Quote creation, the credit-fits check, outbox relay, the order endpoint and the ADR are still pending (see [Scope](#scope)).
 
 ## Stack
 
@@ -74,12 +74,11 @@ Response `200` (the seeded combo `Gaseosa + Agua x6` applies):
   "currency": "GTQ",
   "lines": [
     { "productId": 1, "qty": 6, "unitPrice": 4000.0000, "gross": 24000.00, "discount": 11692.31,
-      "taxableBase": 12307.69, "taxRate": 12.0000, "tax": 1476.92 },
+      "taxableBase": 12307.69, "taxRate": 12.0000, "tax": 1476.92, "gift": false },
     { "productId": 2, "qty": 6, "unitPrice": 2500.0000, "gross": 15000.00, "discount": 7307.69,
-      "taxableBase": 7692.31, "taxRate": 12.0000, "tax": 923.08 }
+      "taxableBase": 7692.31, "taxRate": 12.0000, "tax": 923.08, "gift": false }
   ],
   "discounts": [ { "origin": "COMBO", "sourceId": 1, "detail": "Gaseosa + Agua x6", "amount": 19000.00 } ],
-  "gifts": [],
   "grossSubtotal": 39000.00,
   "totalDiscounts": 19000.00,
   "totalTaxableBase": 20000.00,
@@ -126,12 +125,11 @@ Implemented:
 - JDBC data-access layer (`com.marketplaceb2b.repository`: `PersistenceAccess` + repositories) with an append-only guard
 - Idempotent, atomic order confirmation (`OrderConfirmationService`): validates the quote, consumes credit when the method uses it, and writes the order, idempotency key, ledger entry and outbox events in one transaction
 - Order-pricing engine (`OrderPricingService`): resolves the tenant's current ruleset, reads prices and tax rates, and computes the gross, the discount, the taxable base, the tax and the total with per-line rounding
-- Priority-driven lever pipeline (`service.pricing`): independent lever strategies, applied by descending priority with exclusivity over consumed units, plus the **combo** and **scale** levers
+- Priority-driven lever pipeline (`service.pricing`): independent lever strategies, applied by descending priority with exclusivity over consumed units, plus the **combo**, **scale** and **gift** levers
 - Pricing endpoint `POST /api/v1/pricing` (`PricingController`), with validation and non-leaking error responses (`ApiExceptionHandler`)
 
 Pending:
 
-- Pricing engine — the **gift** lever (the pipeline, the combo and the scale are in place)
 - **Quote creation** (persist an immutable quote from a cart)
 - **Credit-fits** check (does the order fit the cupo)
 - **Outbox relay** (delivery of pending events)
@@ -147,7 +145,7 @@ The engine applies the commercial levers through a **pipeline of strategies** ru
 
 - **Combo**: applies only when **all** of its items reach their minimum quantity. Among the applicable combos the engine picks one by a **fixed, documented priority** (never by minimizing the total). The minimum units go to the combo's total price and units **above** the minimum keep the regular price. The saving is reported as a combo entry with its origin.
 - **Scale**: targets a single product or a single family; the **reached tier** (the greatest `from_qty` not above the target's available units) applies its percentage to **all** of the target's units. A family scale sums its products' units in the cart.
-- **Gift**: evaluated on the gross cart (before discounts); gifted units do not trigger other levers and are taxed only when the gift is marked `taxable`.
+- **Gift**: evaluated on the **gross cart** (the original units and list value, before the discounts). An applied gift adds a line for its product, marked as a gift, and a `GIFT` discount equal to its value, so no product is paid. Its units never reach a combo or a scale (the gift runs after them and its line is skipped). A **taxable** gift is taxed on its gross (the value before the `GIFT` discount); a non-taxable one pays no tax.
 - **Tax**: computed on the taxable base **after** the commercial discounts.
 
 ### Rounding policy
@@ -164,3 +162,4 @@ The **quote is immutable** and freezes the ruleset, the prices, the rates and th
 - **Combos are chosen by priority, not by size or price.** A real system would let the distributor set explicit priorities; the engine never minimizes the total for the buyer. Tiers are applications of a fixed order.
 - **Combo minimums are a floor.** Each combo item requires a minimum quantity; units **above** the minimum are charged at the regular price (e.g. a minimum of 6 with 8 bought: the 6 go in the combo, the extra 2 are paid).
 - **Gift thresholds combine with AND.** A gift condition may require a quantity of a product/family, a minimum amount, or both; when both are present the order must meet both. A disjunction is expressed as two separate gift conditions.
+- **A gift is a marked line plus a `GIFT` discount.** The gift product is a line (with a gift mark) whose value is reduced to zero by the `GIFT` entry; a taxable gift is taxed on its gross, so its line's tax differs from its base times its rate. Persisting a gift line for a product that is already paid in the same quote is an open question for quote creation (`quote_line` has `UNIQUE (quote_id, product_id)`).
