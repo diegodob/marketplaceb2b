@@ -80,12 +80,14 @@ class ComboPricingTest extends AbstractIntegrationTest {
         assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("35000.00");
         assertThat(breakdown.total()).isEqualByComparingTo("37400.00");
 
-        assertThat(breakdown.discounts()).singleElement().satisfies(discount -> {
+        assertThat(breakdown.discounts()).hasSize(2).allSatisfy(discount -> {
             assertThat(discount.origin()).isEqualTo(DiscountOrigin.COMBO);
             assertThat(discount.sourceId()).isEqualTo(comboId);
             assertThat(discount.detail()).isEqualTo("Gaseosa + Leche");
-            assertThat(discount.amount()).isEqualByComparingTo("7000.00");
         });
+        assertThat(breakdown.discounts()).satisfiesExactlyInAnyOrder(
+                discount -> assertThat(discount.amount()).isEqualByComparingTo("4000.00"),
+                discount -> assertThat(discount.amount()).isEqualByComparingTo("3000.00"));
     }
 
     @Test
@@ -128,8 +130,8 @@ class ComboPricingTest extends AbstractIntegrationTest {
 
         PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 6, "AGU-500", 6)));
 
-        assertThat(breakdown.discounts()).singleElement()
-                .satisfies(discount -> assertThat(discount.amount()).isEqualByComparingTo("0.00"));
+        assertThat(breakdown.discounts()).hasSize(2)
+                .allSatisfy(discount -> assertThat(discount.amount()).isEqualByComparingTo("0.00"));
         assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("0.00");
         assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("39000.00");
         assertThat(breakdown.total()).isEqualByComparingTo("43680.00");
@@ -159,8 +161,8 @@ class ComboPricingTest extends AbstractIntegrationTest {
 
         PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 6, "LEC-1L", 3)));
 
-        assertThat(breakdown.discounts()).singleElement()
-                .satisfies(discount -> assertThat(discount.detail()).isEqualTo("Gaseosa + Leche"));
+        assertThat(breakdown.discounts()).hasSize(2)
+                .allSatisfy(discount -> assertThat(discount.detail()).isEqualTo("Gaseosa + Leche"));
         assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("12000.00");
         assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("30000.00");
     }
@@ -173,8 +175,8 @@ class ComboPricingTest extends AbstractIntegrationTest {
 
         PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 6, "AGU-500", 6, "LEC-1L", 6)));
 
-        assertThat(breakdown.discounts()).singleElement()
-                .satisfies(discount -> assertThat(discount.sourceId()).isEqualTo(preferred));
+        assertThat(breakdown.discounts()).hasSize(2)
+                .allSatisfy(discount -> assertThat(discount.sourceId()).isEqualTo(preferred));
         assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("9000.00");
         assertThat(breakdown.totalTax()).isEqualByComparingTo("3600.00");
         assertThat(breakdown.total()).isEqualByComparingTo("69600.00");

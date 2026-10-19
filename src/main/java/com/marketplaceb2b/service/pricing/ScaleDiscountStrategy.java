@@ -45,7 +45,6 @@ public class ScaleDiscountStrategy implements LeverStrategy {
             return;
         }
 
-        Money totalDiscount = Money.zero(context.ruleset());
         for (PricingLine line : covered) {
             int units = line.availableUnits();
             if (units == 0) {
@@ -54,9 +53,9 @@ public class ScaleDiscountStrategy implements LeverStrategy {
             Money lineDiscount = line.unitPriceMoney().times(units).percentage(tier.percentage());
             line.discountBy(lineDiscount);
             line.consume(units);
-            totalDiscount = totalDiscount.plus(lineDiscount);
+            context.recordDiscount(line.productId(), DiscountOrigin.SCALE, scale.id(), detail(scale, tier),
+                    lineDiscount);
         }
-        context.recordDiscount(DiscountOrigin.SCALE, scale.id(), detail(scale, tier), totalDiscount);
     }
 
     private static List<PricingLine> coveredLines(ScaleDiscount scale, PricingContext context) {

@@ -135,8 +135,8 @@ public final class PricingContext {
         lines.add(line);
     }
 
-    public void recordDiscount(DiscountOrigin origin, long sourceId, String detail, Money amount) {
-        discounts.add(new DiscountBreakdown(origin, sourceId, detail, amount.amount()));
+    public void recordDiscount(long productId, DiscountOrigin origin, long sourceId, String detail, Money amount) {
+        discounts.add(new DiscountBreakdown(productId, origin, sourceId, detail, amount.amount()));
     }
 
     public List<DiscountBreakdown> discounts() {

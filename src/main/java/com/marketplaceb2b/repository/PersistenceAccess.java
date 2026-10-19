@@ -15,7 +15,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class PersistenceAccess {
 
-    private static final Set<String> APPEND_ONLY_TABLES = Set.of("ruleset", "quote", "quote_line", "credit_ledger");
+    private static final Set<String> APPEND_ONLY_TABLES = Set.of("ruleset", "quote", "quote_line", "quote_line_discount",
+            "quote_gift", "credit_ledger");
 
     private final NamedParameterJdbcTemplate jdbc;
 

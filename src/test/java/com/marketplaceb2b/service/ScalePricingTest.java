@@ -118,7 +118,7 @@ class ScalePricingTest extends AbstractIntegrationTest {
         PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 18, "AGU-500", 6)));
 
         assertThat(breakdown.discounts()).extracting(DiscountBreakdown::origin)
-                .containsExactly(DiscountOrigin.COMBO, DiscountOrigin.SCALE);
+                .containsExactly(DiscountOrigin.COMBO, DiscountOrigin.COMBO, DiscountOrigin.SCALE);
         assertThat(line(breakdown, productId(gtTenantId(), "GAS-500")).discount())
                 .isEqualByComparingTo("13132.31");
         assertThat(line(breakdown, productId(gtTenantId(), "AGU-500")).discount())
