@@ -14,11 +14,17 @@ import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.server.ServerWebInputException;
 
 import com.marketplaceb2b.dto.ApiError;
+import com.marketplaceb2b.service.exception.CreditAccountRequiredException;
+import com.marketplaceb2b.service.exception.IdempotencyConflictException;
+import com.marketplaceb2b.service.exception.InsufficientCreditException;
 import com.marketplaceb2b.service.exception.MissingCustomerException;
 import com.marketplaceb2b.service.exception.MissingPaymentMethodException;
 import com.marketplaceb2b.service.exception.MissingPriceException;
 import com.marketplaceb2b.service.exception.MissingTaxRateException;
 import com.marketplaceb2b.service.exception.NoCurrentRulesetException;
+import com.marketplaceb2b.service.exception.QuoteAlreadyConfirmedException;
+import com.marketplaceb2b.service.exception.QuoteExpiredException;
+import com.marketplaceb2b.service.exception.QuoteNotFoundException;
 
 /**
  * Maps failures to explicit, non-leaking HTTP errors. The response never carries the exception
@@ -57,6 +63,47 @@ public class ApiExceptionHandler {
                 "El medio de pago no es válido.");
     }
 
+    @ExceptionHandler(QuoteNotFoundException.class)
+    public ResponseEntity<ApiError> quoteNotFound(QuoteNotFoundException exception) {
+        log.info("Unknown quote: {}", exception.getMessage());
+        return error(HttpStatus.NOT_FOUND, "QUOTE_NOT_FOUND", "La cotización no existe o no pertenece a esta tienda.");
+    }
+
+    @ExceptionHandler(QuoteExpiredException.class)
+    public ResponseEntity<ApiError> quoteExpired(QuoteExpiredException exception) {
+        log.info("Expired quote: {}", exception.getMessage());
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, "QUOTE_EXPIRED",
+                "La cotización venció. Volvé a cotizar.");
+    }
+
+    @ExceptionHandler(InsufficientCreditException.class)
+    public ResponseEntity<ApiError> insufficientCredit(InsufficientCreditException exception) {
+        log.info("Insufficient credit: {}", exception.getMessage());
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, "INSUFFICIENT_CREDIT",
+                "El cupo disponible no alcanza para confirmar el pedido.");
+    }
+
+    @ExceptionHandler(CreditAccountRequiredException.class)
+    public ResponseEntity<ApiError> creditAccountRequired(CreditAccountRequiredException exception) {
+        log.info("Missing credit account: {}", exception.getMessage());
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, "NO_CREDIT_ACCOUNT",
+                "El cliente no tiene una cuenta de crédito.");
+    }
+
+    @ExceptionHandler(IdempotencyConflictException.class)
+    public ResponseEntity<ApiError> idempotencyConflict(IdempotencyConflictException exception) {
+        log.info("Idempotency conflict: {}", exception.getMessage());
+        return error(HttpStatus.CONFLICT, "IDEMPOTENCY_CONFLICT",
+                "La clave de idempotencia ya se usó para otra cotización.");
+    }
+
+    @ExceptionHandler(QuoteAlreadyConfirmedException.class)
+    public ResponseEntity<ApiError> quoteAlreadyConfirmed(QuoteAlreadyConfirmedException exception) {
+        log.info("Quote already confirmed: {}", exception.getMessage());
+        return error(HttpStatus.CONFLICT, "QUOTE_ALREADY_CONFIRMED",
+                "La cotización ya tiene un pedido confirmado.");
+    }
+
     @ExceptionHandler(MissingTaxRateException.class)
     public ResponseEntity<ApiError> pricingMisconfigured(MissingTaxRateException exception) {
         log.error("Missing tax rate: {}", exception.getMessage());
@@ -70,14 +117,14 @@ public class ApiExceptionHandler {
         for (FieldError fieldError : exception.getFieldErrors()) {
             details.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
-        return new ResponseEntity<>(new ApiError("INVALID_REQUEST", "El carrito no es válido.", details),
+        return new ResponseEntity<>(new ApiError("INVALID_REQUEST", "La solicitud no es válida.", details),
                 HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(ServerWebInputException.class)
     public ResponseEntity<ApiError> invalidBody(ServerWebInputException exception) {
         log.info("Unreadable request body: {}", exception.getMessage());
-        return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "El carrito no es válido.");
+        return error(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "La solicitud no es válida.");
     }
 
     @ExceptionHandler(Exception.class)

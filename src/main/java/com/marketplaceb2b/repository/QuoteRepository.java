@@ -35,4 +35,12 @@ public class QuoteRepository {
                         + "FROM quote WHERE tenant_id = :tenantId AND id = :quoteId",
                 Map.of("tenantId", tenantId, "quoteId", quoteId), MAPPER).stream().findFirst();
     }
+
+    /** Resolves the client's reference scoped by tenant, so another tenant's quote never resolves. */
+    public Optional<Quote> findByPublicId(long tenantId, UUID publicId) {
+        return access.queryList(
+                "SELECT id, public_id, tenant_id, customer_id, ruleset_id, payment_method_id, total, created_at, expires_at "
+                        + "FROM quote WHERE tenant_id = :tenantId AND public_id = :publicId",
+                Map.of("tenantId", tenantId, "publicId", publicId), MAPPER).stream().findFirst();
+    }
 }

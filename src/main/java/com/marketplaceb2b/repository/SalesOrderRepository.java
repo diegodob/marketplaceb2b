@@ -46,4 +46,20 @@ public class SalesOrderRepository {
                         + "FROM sales_order WHERE tenant_id = :tenantId AND id = :id",
                 Map.of("tenantId", tenantId, "id", id), MAPPER).stream().findFirst();
     }
+
+    /** Reads the order by the client's public number, scoped by tenant. */
+    public Optional<SalesOrder> findByPublicNumber(long tenantId, String publicNumber) {
+        return access.queryList(
+                "SELECT id, public_number, tenant_id, quote_id, customer_id, created_at, deleted_at "
+                        + "FROM sales_order WHERE tenant_id = :tenantId AND public_number = :publicNumber",
+                Map.of("tenantId", tenantId, "publicNumber", publicNumber), MAPPER).stream().findFirst();
+    }
+
+    /** Finds the order a quote already produced, scoped by tenant (one order per quote). */
+    public Optional<SalesOrder> findByQuote(long tenantId, long quoteId) {
+        return access.queryList(
+                "SELECT id, public_number, tenant_id, quote_id, customer_id, created_at, deleted_at "
+                        + "FROM sales_order WHERE tenant_id = :tenantId AND quote_id = :quoteId",
+                Map.of("tenantId", tenantId, "quoteId", quoteId), MAPPER).stream().findFirst();
+    }
 }
