@@ -6,7 +6,7 @@ El enunciado exige un conjunto mínimo de **golden tests** con seis casos. Hoy l
 
 ## What Changes
 
-- Agregar `GoldenSetTest`, con seis tests y resultados esperados fijos sobre el seed de Bebidas GT:
+- Agregar `GoldenSetTest`, con seis tests a nivel de controller (endpoints HTTP) y resultados esperados fijos sobre el seed de Bebidas GT:
   1. descuento de escala en dos tramos dentro de un mismo pedido;
   2. combo sin que los productos que lo activan aparezcan como un descuento suelto;
   3. obsequio visible en el desglose con su cantidad;
@@ -27,5 +27,5 @@ El enunciado exige un conjunto mínimo de **golden tests** con seis casos. Hoy l
 
 ## Impact
 
-- Nuevo: `src/test/java/com/marketplaceb2b/service/GoldenSetTest.java`.
+- Nuevo: `src/test/java/com/marketplaceb2b/controller/GoldenSetTest.java`.
 - No cambia comportamiento ni datos; solo agrega cobertura de aceptación.
