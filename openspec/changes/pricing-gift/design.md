@@ -28,7 +28,7 @@ See proposal.md — Why. The pipeline and the combo and scale strategies exist (
 
 **No separate gifts list.** The response has no `gifts` list: the gift is a marked line and its 100% reduction is a `GIFT` discount entry, so the product, quantity, discount amount and tax are all readable from the lines and the discounts. The gift line is kept out of the by-product index, so a paid line for the same product is never shadowed.
 
-**The cart already carries the gift product.** A gift is always a **separate** line. When the cart already has the product, the breakdown carries the paid line and the gift line, both with the same product and distinguished by the gift mark; the paid line keeps its units and price for the levers. Persistence (quote-creation): `quote_line`'s `UNIQUE (quote_id, product_id)` would reject a second line for the same product, so quote-creation must key the uniqueness by a gift flag or store gifts in a `quote_gift` entry (documented decision).
+**The cart already carries the gift product.** A gift is always a **separate** line. When the cart already has the product, the breakdown carries the paid line and the gift line, both with the same product and distinguished by the gift mark; the paid line keeps its units and price for the levers. How quote-creation persists that second line for the same product is left as an open question (see Open Questions).
 
 **Gift product price and rate loaded separately.** The service loads the gift products' prices/rates (they may not be in the cart). A taxable gift requires them; if either is missing the engine fails with the existing explicit errors.
 
@@ -57,8 +57,8 @@ The gift's tax is on its **gross** (2500 × 12% = 300) although its net base is 
 - **The tax exception** means a gift line's `tax ≠ base × rate`. Documented and asserted; the gift mark explains it.
 - **The gross subtotal includes the gift value** and the total discounts include the GIFT amount, so both look larger than the paid amounts. Transparent: the buyer sees the gift and its 100% reduction.
 - **A high-priority gift** would still be isolated by the gift mark (the other strategies skip it).
-- **The gift line is stored as a line** in a quote; the flag/table shape is a quote-creation decision.
+- **The gift line's persistence** is unresolved for a repeated product (see Open Questions); the engine's response is unaffected.
 
 ## Open Questions
 
-- None.
+- **Persisting a repeated gift product (quote-creation).** `quote_line` has `UNIQUE (quote_id, product_id)`, so a gift line for a product that is already a paid line cannot be stored as a second row. Quote-creation must decide how: a gift flag participating in the uniqueness, a separate `quote_gift` entry, or another representation. The engine's response (two lines, one marked) is unaffected.

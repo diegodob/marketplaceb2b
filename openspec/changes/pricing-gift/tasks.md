@@ -21,7 +21,7 @@
 
 ## 5. Documentation
 
-- [ ] 5.1 Document the gift model in the README (line + GIFT discount, tax on the gross for taxable gifts, isolation, gross-cart condition) and update the scope; note the quote-creation persistence decision
+- [ ] 5.1 Document the gift model in the README (line + GIFT discount, tax on the gross for taxable gifts, isolation, gross-cart condition) and update the scope; leave the persistence of a repeated gift product as an open question for quote-creation
 
 ## Workflow follow-up
 

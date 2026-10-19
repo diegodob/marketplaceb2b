@@ -23,4 +23,4 @@ The pipeline applies the combo and the scale, but the gift is not applied: when 
 ## Impact
 
 - New `GiftStrategy` in `service.pricing`; `DiscountOrigin` gains `GIFT`; `LineBreakdown` carries a gift mark; `PricingLine` a gift mark and its taxability; `PricingContext` accepts added lines and carries the gifts; the breakdown applies the tax exception; the combo and scale strategies skip gift lines.
-- Tests for the gift step; the README's gift note and status; the persistence of a gift as a line is documented for quote-creation.
+- Tests for the gift step; the README's gift note and status; the persistence of a repeated gift product is left as an open question for quote-creation.
