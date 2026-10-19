@@ -14,6 +14,7 @@ import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.server.ServerWebInputException;
 
 import com.marketplaceb2b.dto.ApiError;
+import com.marketplaceb2b.service.exception.MissingCustomerException;
 import com.marketplaceb2b.service.exception.MissingPaymentMethodException;
 import com.marketplaceb2b.service.exception.MissingPriceException;
 import com.marketplaceb2b.service.exception.MissingTaxRateException;
@@ -41,6 +42,12 @@ public class ApiExceptionHandler {
         log.warn("No pricing in force: {}", exception.getMessage());
         return error(HttpStatus.SERVICE_UNAVAILABLE, "STORE_PRICING_UNAVAILABLE",
                 "La tienda no tiene precios disponibles en este momento.");
+    }
+
+    @ExceptionHandler(MissingCustomerException.class)
+    public ResponseEntity<ApiError> customerNotFound(MissingCustomerException exception) {
+        log.info("Unknown customer: {}", exception.getMessage());
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, "CUSTOMER_NOT_FOUND", "El cliente no es válido.");
     }
 
     @ExceptionHandler(MissingPaymentMethodException.class)

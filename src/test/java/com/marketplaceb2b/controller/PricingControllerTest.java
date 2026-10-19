@@ -66,8 +66,8 @@ class PricingControllerTest {
                     assertThat(breakdown).isNotNull();
                     assertThat(breakdown.currency()).isEqualTo("GTQ");
                     assertThat(breakdown.lines()).hasSize(2);
-                    assertThat(breakdown.discounts()).singleElement()
-                            .satisfies(discount -> assertThat(discount.origin()).isEqualTo(DiscountOrigin.COMBO));
+                    assertThat(breakdown.discounts()).hasSize(2)
+                            .allSatisfy(discount -> assertThat(discount.origin()).isEqualTo(DiscountOrigin.COMBO));
                     assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("19000.00");
                     assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("20000.00");
                     assertThat(breakdown.totalTax()).isEqualByComparingTo("2400.00");

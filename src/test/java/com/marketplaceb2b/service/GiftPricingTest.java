@@ -174,7 +174,7 @@ class GiftPricingTest extends AbstractIntegrationTest {
         PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 6, "AGU-500", 6)));
 
         assertThat(breakdown.discounts()).extracting(DiscountBreakdown::origin)
-                .containsExactlyInAnyOrder(DiscountOrigin.COMBO, DiscountOrigin.GIFT);
+                .containsExactlyInAnyOrder(DiscountOrigin.COMBO, DiscountOrigin.COMBO, DiscountOrigin.GIFT);
         assertThat(giftLine(breakdown, gtProduct("LEC-1L")).qty()).isEqualTo(1);
         assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("25000.00");
         assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("20000.00");
@@ -189,7 +189,7 @@ class GiftPricingTest extends AbstractIntegrationTest {
         PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 6, "AGU-500", 6)));
 
         assertThat(breakdown.discounts()).extracting(DiscountBreakdown::origin)
-                .containsExactlyInAnyOrder(DiscountOrigin.COMBO, DiscountOrigin.GIFT);
+                .containsExactlyInAnyOrder(DiscountOrigin.COMBO, DiscountOrigin.COMBO, DiscountOrigin.GIFT);
         assertThat(paidLine(breakdown, gtProduct("AGU-500")).discount()).isEqualByComparingTo("7307.69");
         assertThat(giftLine(breakdown, gtProduct("AGU-500")).discount()).isEqualByComparingTo("2500.00");
         assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("21500.00");
@@ -238,7 +238,8 @@ class GiftPricingTest extends AbstractIntegrationTest {
         PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 18, "AGU-500", 6)));
 
         assertThat(breakdown.discounts()).extracting(DiscountBreakdown::origin)
-                .containsExactlyInAnyOrder(DiscountOrigin.COMBO, DiscountOrigin.SCALE, DiscountOrigin.GIFT);
+                .containsExactlyInAnyOrder(DiscountOrigin.COMBO, DiscountOrigin.COMBO, DiscountOrigin.SCALE,
+                        DiscountOrigin.GIFT);
         assertThat(paidLine(breakdown, gtProduct("GAS-500")).discount()).isEqualByComparingTo("13132.31");
         assertThat(giftLine(breakdown, gtProduct("GAS-500")).discount()).isEqualByComparingTo("4000.00");
         assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("24440.00");
@@ -255,7 +256,8 @@ class GiftPricingTest extends AbstractIntegrationTest {
         PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 18, "AGU-500", 6)));
 
         assertThat(breakdown.discounts()).extracting(DiscountBreakdown::origin)
-                .containsExactlyInAnyOrder(DiscountOrigin.COMBO, DiscountOrigin.SCALE, DiscountOrigin.GIFT);
+                .containsExactlyInAnyOrder(DiscountOrigin.COMBO, DiscountOrigin.COMBO, DiscountOrigin.SCALE,
+                        DiscountOrigin.GIFT);
         assertThat(paidLine(breakdown, gtProduct("GAS-500")).discount()).isEqualByComparingTo("13132.31");
         assertThat(giftLine(breakdown, gtProduct("LEC-1L")).discount()).isEqualByComparingTo("6000.00");
         assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("26440.00");

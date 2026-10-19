@@ -2,7 +2,7 @@
 
 Multi-tenant B2B marketplace API for the order flow: catalog → cart → checkout (quote) → confirmation → history.
 
-A Java 21 / Spring Boot WebFlux service. This repository contains the order-flow foundation: an immutable domain model, a Flyway-managed schema (H2 in PostgreSQL compatibility mode), a JDBC data-access layer with repositories, an order-pricing engine with a priority-driven lever pipeline (combo, scale and gift) and a credit fit, an idempotent order-confirmation service, and an HTTP endpoint that prices a cart. Quote creation, outbox relay, the order endpoint and the ADR are still pending (see [Scope](#scope)).
+A Java 21 / Spring Boot WebFlux service. This repository contains the order-flow foundation: an immutable domain model, a Flyway-managed schema (H2 in PostgreSQL compatibility mode), a JDBC data-access layer with repositories, an order-pricing engine with a priority-driven lever pipeline (combo, scale and gift) and a credit fit, an idempotent order-confirmation service, and HTTP endpoints that price a cart and create an immutable quote. Outbox relay, the order endpoint and the ADR are still pending (see [Scope](#scope)).
 
 ## Stack
 
@@ -99,6 +99,24 @@ Errors carry a stable `code`, a clear `message` and optional `details`. The body
 | 500 | `PRICING_MISCONFIGURED` | a product's tax category has no rate |
 | 500 | `INTERNAL_ERROR` | anything else (the detail is logged, not returned) |
 
+### `POST /api/v1/quotes`
+
+Prices the cart and persists an **immutable** quote in one transaction: the header, the frozen paid lines, the applied discounts per line and the gifted units. Returns **201** with the quote's public id, its expiry (24 hours) and the breakdown.
+
+Request: the same cart as `/pricing`; the customer and the payment method are required.
+
+Response `201`:
+
+```json
+{
+  "publicId": "8f14e45f-...",
+  "expiresAt": "2026-10-20T10:00:00Z",
+  "breakdown": { "...same shape as POST /pricing..." }
+}
+```
+
+Errors: `400 INVALID_REQUEST`, `422 CUSTOMER_NOT_FOUND` (the customer is not the tenant's), `422 PAYMENT_METHOD_NOT_FOUND`, and the pricing failures above (`PRODUCT_NOT_SELLABLE`, `STORE_PRICING_UNAVAILABLE`, `PRICING_MISCONFIGURED`).
+
 ## Structure
 
 Packages under `com.marketplaceb2b` (source root `src/main/java`):
@@ -115,7 +133,7 @@ com.marketplaceb2b
     └── pricing                    # lever pipeline and strategies
 ```
 
-Schema lives in `src/main/resources/db/migration` (`V1__schema.sql`, `V2__seed.sql`, `V3__product_family.sql`, `V4__levers.sql`, `V5__levers_seed.sql`, `V6__gift_taxable.sql`, `V7__lever_priority.sql`).
+Schema lives in `src/main/resources/db/migration` (`V1__schema.sql`, `V2__seed.sql`, `V3__product_family.sql`, `V4__levers.sql`, `V5__levers_seed.sql`, `V6__gift_taxable.sql`, `V7__lever_priority.sql`, `V8__quote_persistence.sql`).
 
 ## Scope
 
@@ -123,18 +141,18 @@ Implemented:
 
 - Bootable Java 21 Spring Boot WebFlux service; `GET /api/v1/health`
 - Immutable, validated domain model (records + Bean Validation): countries, tenants, tax categories, rulesets, tax rates, product families, products, prices, payment methods, customers, credit accounts, quotes/lines, orders, idempotency keys, credit ledger, outbox, and the commercial levers (scale discounts, combos, gifts)
-- Flyway schema: `V1__schema.sql` (tables), `V2__seed.sql` (example data), `V3__product_family.sql`, `V4__levers.sql`, `V5__levers_seed.sql`, `V6__gift_taxable.sql`, `V7__lever_priority.sql`
+- Flyway schema: `V1__schema.sql` (tables), `V2__seed.sql` (example data), `V3__product_family.sql`, `V4__levers.sql`, `V5__levers_seed.sql`, `V6__gift_taxable.sql`, `V7__lever_priority.sql`, `V8__quote_persistence.sql`
 - JDBC data-access layer (`com.marketplaceb2b.repository`: `PersistenceAccess` + repositories) with an append-only guard
 - Idempotent, atomic order confirmation (`OrderConfirmationService`): validates the quote, consumes credit when the method uses it, and writes the order, idempotency key, ledger entry and outbox events in one transaction
 - Order-pricing engine (`OrderPricingService`): resolves the tenant's current ruleset, reads prices and tax rates, and computes the gross, the discount, the taxable base, the tax and the total with per-line rounding
 - Priority-driven lever pipeline (`service.pricing`): independent lever strategies, applied by descending priority with exclusivity over consumed units, plus the **combo**, **scale** and **gift** levers
 - Pricing endpoint `POST /api/v1/pricing` (`PricingController`), with validation, non-leaking error responses (`ApiExceptionHandler`) and the credit fit when the payment method uses credit
+- Quote endpoint `POST /api/v1/quotes` (`QuoteController` + `QuoteWriter`): persists the immutable quote, its frozen lines, the per-line applied discounts (`quote_line_discount`) and the gifts (`quote_gift`), with the tenant-consistent composite foreign keys
 
 Pending:
 
-- **Quote creation** (persist an immutable quote from a cart)
 - **Outbox relay** (delivery of pending events)
-- **HTTP endpoints** for quote creation and `POST /orders` with an idempotency key
+- **HTTP endpoint** for `POST /orders` with an idempotency key
 - **ADR**
 - Optional Angular/Flutter front end
 
@@ -161,10 +179,14 @@ The **quote is immutable** and freezes the ruleset, the prices, the rates and th
 
 When the payment method uses credit, the breakdown carries `creditFit` (`fits`, `available`, `total`, `reason`: `FITS`, `INSUFFICIENT_CREDIT` or `NO_ACCOUNT`), computed on the **final total** after the levers and the tax. The payment method is resolved **tenant-scoped** and the account is read **without locking**; the fit is a **snapshot**, so the confirmation re-checks under the lock and consumes. A customer without an account gets `NO_ACCOUNT` (`fits: false`, `available: 0`) in the preview — the confirmation is the step that refuses the order — and the fit is `null` when the method is absent or does not use credit.
 
+### Quote persistence
+
+`POST /quotes` prices the cart and writes, in one transaction, the `quote` (the immutable header), the `quote_line` (the paid lines, with the frozen unit price, tax rate, base and tax), the `quote_line_discount` (the applied discounts per line, each with the lever that produced it) and the `quote_gift` (the gifted units, with their value and tax). The quote and the order reference their customer with a **composite foreign key** `(tenant_id, customer_id)`, and the order its quote with `(tenant_id, quote_id)`, so a cross-tenant reference is impossible at the database.
+
 ### Known simplifications & rules (for the ADR)
 
 - **Scale discounts target a single product or a single family.** A scale that should span several targets is modelled as several scale discounts. Tiers are cumulative and strictly increasing by starting quantity.
 - **Combos are chosen by priority, not by size or price.** A real system would let the distributor set explicit priorities; the engine never minimizes the total for the buyer. Tiers are applications of a fixed order.
 - **Combo minimums are a floor.** Each combo item requires a minimum quantity; units **above** the minimum are charged at the regular price (e.g. a minimum of 6 with 8 bought: the 6 go in the combo, the extra 2 are paid).
 - **Gift thresholds combine with AND.** A gift condition may require a quantity of a product/family, a minimum amount, or both; when both are present the order must meet both. A disjunction is expressed as two separate gift conditions.
-- **A gift is a marked line plus a `GIFT` discount.** The gift product is a line (with a gift mark) whose value is reduced to zero by the `GIFT` entry; a taxable gift is taxed on its gross, so its line's tax differs from its base times its rate. Persisting a gift line for a product that is already paid in the same quote is an open question for quote creation (`quote_line` has `UNIQUE (quote_id, product_id)`).
+- **A gift is a marked line plus a `GIFT` discount.** The gift product is a line (with a gift mark) whose value is reduced to zero by the `GIFT` entry; a taxable gift is taxed on its gross, so its line's tax differs from its base times its rate. A quote persists a gift in `quote_gift` (not as a `quote_line`), so a gift of a product already paid does not collide with `quote_line`'s `UNIQUE (quote_id, product_id)`.

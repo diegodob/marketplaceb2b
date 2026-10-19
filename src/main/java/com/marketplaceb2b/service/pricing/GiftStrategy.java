@@ -55,7 +55,7 @@ public class GiftStrategy implements LeverStrategy {
                 gift.taxable(), context.ruleset());
         Money value = line.gross();
         line.discountBy(value);
-        context.recordDiscount(DiscountOrigin.GIFT, gift.id(), detail(gift), value);
+        context.recordDiscount(gift.giftProductId(), DiscountOrigin.GIFT, gift.id(), detail(gift), value);
         context.addGiftLine(line);
     }
 

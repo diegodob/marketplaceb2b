@@ -64,7 +64,6 @@ public class ComboStrategy implements LeverStrategy {
         Money comboPrice = Money.of(combo.comboPrice(), context.ruleset());
 
         Money allocated = Money.zero(context.ruleset());
-        Money totalDiscount = Money.zero(context.ruleset());
         for (int index = 0; index < items.size(); index++) {
             ComboItem item = items.get(index);
             Money covered = coveredValue(item, context);
@@ -77,10 +76,8 @@ public class ComboStrategy implements LeverStrategy {
             PricingLine line = context.line(item.productId());
             line.discountBy(lineDiscount);
             line.consume(item.minQty());
-            totalDiscount = totalDiscount.plus(lineDiscount);
+            context.recordDiscount(item.productId(), DiscountOrigin.COMBO, combo.id(), combo.name(), lineDiscount);
         }
-
-        context.recordDiscount(DiscountOrigin.COMBO, combo.id(), combo.name(), totalDiscount);
     }
 
     private static Money coveredValue(ComboItem item, PricingContext context) {
