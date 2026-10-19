@@ -6,7 +6,7 @@
 
 ## 2. Credit fit
 
-- [ ] 2.1 Add `CreditFit` and `CreditFitReason` (`FITS`, `EXCEEDS_LIMIT`, `NO_ACCOUNT`) to the DTOs and `PriceBreakdown.creditFit`; implement the fit in `OrderPricingService` (resolve the method, read the account, compare the total, null when not credit) and a `MissingPaymentMethodException` for an id that does not resolve; verify the project compiles
+- [ ] 2.1 Add `CreditFit` and `CreditFitReason` (`FITS`, `INSUFFICIENT_CREDIT`, `NO_ACCOUNT`) to the DTOs and `PriceBreakdown.creditFit`; implement the fit in `OrderPricingService` (resolve the method, read the account, compare the total, null when not credit) and a `MissingPaymentMethodException` for an id that does not resolve; verify the project compiles
 
 ## 3. API and docs
 
@@ -15,7 +15,7 @@
 ## 4. Tests
 
 - [ ] 4.1 Happy path: a credit cart within the available credit (`FITS`) and exactly at the available credit
-- [ ] 4.2 Edge cases: above the available credit (`EXCEEDS_LIMIT`), no account (`NO_ACCOUNT`), a non-credit method and no method (null), an unknown method (422), another tenant's method (422), and the scoped method lookup
+- [ ] 4.2 Edge cases: above the available credit (`INSUFFICIENT_CREDIT`), no account (`NO_ACCOUNT`), a non-credit method and no method (null), an unknown method (422), another tenant's method (422), and the scoped method lookup
 - [ ] 4.3 Run `gradlew.bat clean test` and confirm the full suite passes with exit code `0`
 
 ## Workflow follow-up

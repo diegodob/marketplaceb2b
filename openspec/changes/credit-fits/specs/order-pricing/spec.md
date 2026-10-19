@@ -4,7 +4,7 @@
 
 ### Requirement: Credit fit
 
-When the cart's payment method uses credit, the breakdown SHALL carry the credit fit: whether the total fits the available credit, the available amount, the total and a reason (`FITS`, `EXCEEDS_LIMIT`, or `NO_ACCOUNT` when the customer has no credit account). The fit SHALL be null when the cart has no payment method or its method does not use credit.
+When the cart's payment method uses credit, the breakdown SHALL carry the credit fit: whether the total fits the available credit, the available amount, the total and a reason (`FITS`, `INSUFFICIENT_CREDIT`, or `NO_ACCOUNT` when the customer has no credit account). The fit SHALL be null when the cart has no payment method or its method does not use credit.
 
 #### Scenario: A credit order within the available credit
 
@@ -14,7 +14,7 @@ When the cart's payment method uses credit, the breakdown SHALL carry the credit
 #### Scenario: A credit order above the available credit
 
 - **WHEN** the total exceeds the customer's available credit
-- **THEN** the fit reports `EXCEEDS_LIMIT` and does not fit
+- **THEN** the fit reports `INSUFFICIENT_CREDIT` and does not fit
 
 #### Scenario: A credit customer without an account
 
