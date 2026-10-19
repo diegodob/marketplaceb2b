@@ -39,10 +39,11 @@ public class SalesOrderRepository {
                         "customerId", customerId, "createdAt", Timestamp.from(createdAt)));
     }
 
-    public Optional<SalesOrder> findById(long id) {
+    /** Reads the order scoped by tenant, so another tenant's id never resolves. */
+    public Optional<SalesOrder> findById(long tenantId, long id) {
         return access.queryList(
                 "SELECT id, public_number, tenant_id, quote_id, customer_id, created_at, deleted_at "
-                        + "FROM sales_order WHERE id = :id",
-                Map.of("id", id), MAPPER).stream().findFirst();
+                        + "FROM sales_order WHERE tenant_id = :tenantId AND id = :id",
+                Map.of("tenantId", tenantId, "id", id), MAPPER).stream().findFirst();
     }
 }

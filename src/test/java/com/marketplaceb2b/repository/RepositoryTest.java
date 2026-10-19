@@ -209,9 +209,19 @@ class RepositoryTest extends AbstractIntegrationTest {
         long tenant = gtTenantId();
         long quote = newQuote("10.00", Instant.now().plusSeconds(3600));
         long orderId = salesOrders.insert(tenant, quote, gtCustomerId(), "PUB-2", Instant.now());
-        SalesOrder order = salesOrders.findById(orderId).orElseThrow();
+        SalesOrder order = salesOrders.findById(tenant, orderId).orElseThrow();
         assertThat(order.quoteId()).isEqualTo(quote);
         assertThat(order.publicNumber()).isEqualTo("PUB-2");
+    }
+
+    @Test
+    void salesOrderLookupIsTenantScoped() {
+        long tenant = gtTenantId();
+        long order = salesOrders.insert(tenant, newQuote("10.00", Instant.now().plusSeconds(3600)), gtCustomerId(),
+                "PUB-SCOPED", Instant.now());
+
+        assertThat(salesOrders.findById(tenant, order)).isPresent();
+        assertThat(salesOrders.findById(coTenantId(), order)).isEmpty();
     }
 
     @Test

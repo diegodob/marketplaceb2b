@@ -67,7 +67,7 @@ public class OrderConfirmationService {
 
         Optional<IdempotencyKey> existing = idempotencyKeys.find(customerId, idempotencyKey);
         if (existing.isPresent()) {
-            SalesOrder order = salesOrders.findById(existing.get().salesOrderId())
+            SalesOrder order = salesOrders.findById(quote.tenantId(), existing.get().salesOrderId())
                     .orElseThrow(() -> new IllegalStateException("Order referenced by the idempotency key is missing"));
             if (!order.quoteId().equals(quoteId)) {
                 throw new IdempotencyConflictException(idempotencyKey);
