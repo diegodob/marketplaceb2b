@@ -391,7 +391,7 @@ curl -i -X POST http://localhost:8080/api/v1/orders \
 ```
 
 ```json
-{ "number": "5c2f1d6a-9b8e-4a7c-8f1d-2e3b4c5d6e7f", "total": 22400.00, "replayed": false }
+{ "number": "5c2f1d6a-9b8e-4a7c-8f1d-2e3b4c5d6e7f", "total": 22400.0000, "replayed": false }
 ```
 
 Reintento con la misma clave y cotización: mismo 201 y mismo `number`, con `"replayed": true`; no crea otra orden ni vuelve a consumir cupo.
@@ -402,7 +402,7 @@ Reintento con la misma clave y cotización: mismo 201 y mismo `number`, con `"re
 {
   "number": "5c2f1d6a-9b8e-4a7c-8f1d-2e3b4c5d6e7f",
   "quotePublicId": "8f14e45f-ceea-4b4a-9f0e-2d6c1f7a1b23",
-  "total": 22400.00,
+  "total": 22400.0000,
   "createdAt": "2026-10-19T10:00:00Z",
   "lines": [
     { "id": 12, "quoteId": 7, "productId": 1, "qty": 6, "unitPrice": 4000.0000,

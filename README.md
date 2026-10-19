@@ -2,7 +2,7 @@
 
 Multi-tenant B2B marketplace API for the order flow: catalog → cart → checkout (quote) → confirmation → history.
 
-A Java 21 / Spring Boot WebFlux service. This repository contains the order-flow foundation: an immutable domain model, a Flyway-managed schema (H2 in PostgreSQL compatibility mode), a JDBC data-access layer with repositories, an order-pricing engine with a priority-driven lever pipeline (combo, scale and gift) and a credit fit, an idempotent order-confirmation service, and HTTP endpoints that price a cart, create an immutable quote, confirm an order and read it back. The outbox **relay** is still pending (see [Scope](#scope)). The design decisions are in the [ADR](docs/ADR.md).
+A Java 21 / Spring Boot WebFlux service. This repository contains the order-flow foundation: an immutable domain model, a Flyway-managed schema (H2 in PostgreSQL compatibility mode), a JDBC data-access layer with repositories, an order-pricing engine with a priority-driven lever pipeline (combo, scale and gift) and a credit fit, an idempotent order-confirmation service, and HTTP endpoints that price a cart, create an immutable quote, confirm an order and read it back. The outbox **relay** is still pending (see [Scope](#scope)). The design decisions are in the [ADR](docs/ADR.md) ([PDF](docs/ADR.pdf)).
 
 ## Stack
 
