@@ -131,7 +131,7 @@ Implemented:
 Pending:
 
 - **Quote creation** (persist an immutable quote from a cart)
-- **Credit-fits** check (does the order fit the cupo)
+- **Credit-fits** check (does the order fit the available credit)
 - **Outbox relay** (delivery of pending events)
 - **HTTP endpoints** for quote creation and `POST /orders` with an idempotency key
 - **ADR**

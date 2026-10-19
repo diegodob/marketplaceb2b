@@ -17,7 +17,7 @@ See proposal.md — Why. The engine prices a cart and ignores `Cart.customerId` 
 
 **A nullable `creditFit`.** `{ fits, available, total, reason }`, null when the cart has no payment method or its method does not use credit. Alternative: always present with an `applicable` flag — rejected: null is unambiguous.
 
-**A reason.** `FITS`, `EXCEEDS_CUPO` or `NO_ACCOUNT`, so the client can tell "over the cupo" from "no account".
+**A reason.** `FITS`, `EXCEEDS_LIMIT` or `NO_ACCOUNT`, so the client can tell "over the available credit" from "no account".
 
 **No account is an indicator, not an error.** The preview reports `NO_ACCOUNT` and `fits: false`; the confirmation is the step that refuses the order (A2). Alternative: throw — rejected: the take-home says the calculation must *indicate*, and pricing is read-only.
 
@@ -35,7 +35,7 @@ See proposal.md — Why. The engine prices a cart and ignores `Cart.customerId` 
 
 | Cart | Total | `creditFit` |
 |---|---|---|
-| LEC ×60 | 360000 | `{ fits: false, available: 300000, total: 360000, reason: EXCEEDS_CUPO }` |
+| LEC ×60 | 360000 | `{ fits: false, available: 300000, total: 360000, reason: EXCEEDS_LIMIT }` |
 | LEC ×10 | 60000 | `{ fits: true, available: 300000, total: 60000, reason: FITS }` |
 | credit method, no account | any | `{ fits: false, available: 0, total: …, reason: NO_ACCOUNT }` |
 | cash method, or no method | any | `null` |

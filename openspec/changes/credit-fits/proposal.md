@@ -7,7 +7,7 @@ A1 requires the pricing to say whether a credit order fits the customer's availa
 ## What Changes
 
 - Add a **credit fit** to the breakdown: when the cart's payment method uses credit, the response carries `creditFit { fits, available, total, reason }`; otherwise it is null.
-- `reason` is `FITS`, `EXCEEDS_CUPO` or `NO_ACCOUNT` (the payment method uses credit but the customer has no credit account — no cupo).
+- `reason` is `FITS`, `EXCEEDS_LIMIT` or `NO_ACCOUNT` (the payment method uses credit but the customer has no credit account — no available credit).
 - The pricing resolves the payment method **scoped by the cart's tenant** and reads the customer's credit account **without locking** (it is a preview; the confirmation stays the one that locks and consumes).
 - A payment method id that does not resolve in the tenant is an explicit client error.
 - The confirmation's own credit check is unchanged (A2).
