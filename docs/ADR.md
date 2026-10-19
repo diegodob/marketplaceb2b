@@ -1,9 +1,5 @@
 # ADR — Flujo de pedidos B2B multi-tenant
 
-**Estado:** aceptado · **Fecha:** 2026-10-19
-
-El cuerpo (secciones 1 a 5) concentra las decisiones. Los anexos contienen los DER y ejemplos reales de request/response.
-
 ## 1. Contexto
 
 Opero un marketplace B2B donde tenderos compran a distribuidores de bebidas. La plataforma es multi-tenant (varias marcas comerciales y varios países sobre el mismo sistema) y el flujo del pedido es catálogo → carrito → checkout (cotización) → confirmación → historial. Sobre el precio conviven palancas —descuento por escala, combo y obsequio— más los impuestos y el cupo de crédito.
@@ -19,21 +15,21 @@ Implementé ese tramo completo en Java 21 con Spring Boot WebFlux, JDBC y Flyway
 
 ### D1 — Stack: WebFlux, JDBC explícito, Flyway y H2
 
-Elegí WebFlux porque el enunciado lo propone y el trabajo es I/O-bound. Usé JDBC en lugar de JPA para que el SQL, los índices y las constraints queden a la vista: son parte del diseño de las invariantes, no un detalle del ORM. Flyway versiona el esquema y el seed, y H2 en memoria permite correr todo con un comando, sin infraestructura para el evaluador.
+Elegí Java 21 con Spring Boot WebFlux porque es el lenguaje en el que me siento más cómodo y el enunciado lo permitía; además, el trabajo es I/O-bound. Usé JDBC en lugar de JPA para que el SQL, los índices y las constraints queden a la vista: son parte del diseño de las invariantes, no un detalle del ORM. Flyway versiona el esquema y el seed, y H2 en memoria permite correr todo con un comando, sin infraestructura para el evaluador.
 
-**Descarté:** JPA (oculta el SQL y las constraints); un Postgres real (más fiel, pero agrega infraestructura y no cambia las decisiones); Go o NestJS (no aportaban al objetivo).
+**Descarté:** JPA (oculta el SQL y las constraints); un Postgres real (más fiel, pero agrega infraestructura y no cambia las decisiones).
 
 ### D2 — Multi-tenant por fila, aislamiento en los datos
 
 Cada tabla de negocio lleva `tenant_id` y toda lectura se filtra por tenant. La cotización y el pedido referencian al cliente y entre sí con **FKs compuestas** `(tenant_id, id)`, de modo que una referencia entre marcas es imposible a nivel base, no solo por convención en el código.
 
-**Descarté:** un schema por tenant (mejor aislamiento, pero multiplica migraciones y operación); confiar solo en la capa de aplicación (un `findById` olvidado filtra datos de otra marca).
+**Descarté:** confiar solo en la capa de aplicación (un `findById` olvidado filtra datos de otra marca).
 
 ### D3 — Orden y prioridades de las palancas
 
 Armo una **lista única de palancas aplicables** y la ordeno por **prioridad descendente**. Cada palanca aplicada **consume** las unidades que descuenta, y una unidad consumida no vuelve a participar en otra palanca. Ese consumo es el mecanismo que impide el doble descuento.
 
-Con las prioridades del seed (combo 20, escala 10, obsequio 5) el orden efectivo es **combo → escala → obsequio → impuesto**. A igual prioridad desempato de forma fija: **tipo** (combo, escala, obsequio) → **objetivo** (SKU antes que familia, porque es más específico) → **id mayor** (la palanca más nueva). Nunca elijo la palanca que minimiza el total.
+Con las prioridades del seed (combo 20, escala 10, obsequio 5) el orden efectivo es **combo → escala → obsequio → impuesto**. A igual prioridad desempato de forma fija: **tipo** (combo, escala, obsequio) → **objetivo** (SKU antes que familia, porque es más específico) → **id mayor** (la palanca más nueva).
 
 Por qué ese orden:
 
@@ -42,13 +38,13 @@ Por qué ese orden:
 - **Obsequio después**: sus condiciones se evalúan sobre el **carrito bruto** (unidades y valor de lista, antes de descuentos), y agrega unidades que no participan de combo ni escala; de ese modo el regalo no "paga" descuentos.
 - **Impuesto al final**: se calcula sobre la base gravable después de los descuentos comerciales, como define el dominio.
 
-**Descarté:** un optimizador que minimice el total del comprador (impredecible, difícil de explicar y de soportar, y cambia resultados ante cada palanca nueva); ordenar por inserción (no determinista entre entornos); dejar convivir palancas sobre las mismas unidades (doble descuento).
+**Descarté:** un optimizador que minimice el total del comprador (difícil de explicar y de soportar); dejar convivir palancas sobre las mismas unidades (doble descuento).
 
 ### D4 — Combo: prioridad y mínimo como piso
 
 Entre los combos aplicables gana el de mayor prioridad. Las cantidades mínimas se cobran al precio de combo y las unidades por encima del mínimo se pagan a precio regular.
 
-**Descarté:** elegir el combo que más ahorra (mejor para el comprador, pero impredecible y no configurable por el distribuidor).
+**Descarté:** elegir el combo que más ahorra (mejor para el comprador, pero no configurable por el distribuidor).
 
 ### D5 — Escala: el tramo alcanzado aplica a todas las unidades
 
@@ -60,7 +56,7 @@ Los tramos son acumulativos por cantidad de inicio. Se aplica el porcentaje del 
 
 Si se cumple la condición —cantidad de un producto o familia, monto mínimo, o ambos con AND—, agrego una línea del producto obsequiado **marcada como regalo** y un descuento `GIFT` por su valor, de modo que el producto no se paga. Todas las condiciones cumplidas acumulan. Un obsequio gravable se grava sobre su valor bruto (su base queda en cero); uno no gravable no paga impuesto. Persisto el obsequio en `quote_gift`, no como línea pagada, para que un regalo de un producto ya comprado no choque con `UNIQUE (quote_id, product_id)`.
 
-**Descarté:** una lista de obsequios separada del desglose por línea (rompía el requisito de ver el regalo con su cantidad); gravar el obsequio sobre la base cero (perdía el impuesto que el dominio exige).
+**Descarté:** una lista de obsequios separada del desglose por línea (rompía el requisito de ver el regalo con su cantidad); usar `quote_line` con un flag `gift` en lugar de una tabla propia (obligaría a debilitar `UNIQUE (quote_id, product_id)`, que hoy garantiza una sola línea pagada por producto, y no soporta varios obsequios del mismo producto —el seed tiene tres condiciones que regalan el mismo SKU— sin perder qué regla originó cada unidad).
 
 ### D7 — Dinero exacto, multi-país y redondeo por línea
 
@@ -111,7 +107,7 @@ Los errores devuelven `code`, `message` y `details`, nunca ids internos, SQL ni 
 
 ### D13 — Sin cache
 
-No agregué Redis ni cache en memoria. No estaba pedido, el dataset es chico, hay una sola instancia y el riesgo de invalidación —un precio o ruleset nuevo sirviendo datos viejos— es mayor que el beneficio. La consistencia entre cotización y confirmación ya está resuelta por la inmutabilidad de la cotización, no por cache. Si el volumen lo justificara, cachearía el `ruleset` **por versión** (inmutable) y mediría antes de optimizar.
+No agregué Redis ni cache en memoria. Para este ejercicio no era necesario: no estaba pedido, el dataset es chico, hay una sola instancia y el riesgo de invalidación —un precio o ruleset nuevo sirviendo datos viejos— supera el beneficio; además, la consistencia entre cotización y confirmación ya está resuelta por la inmutabilidad de la cotización, no por cache. En producción sí lo consideraría: cachearía el `ruleset` **por versión** (inmutable) junto con los precios y tasas de esa versión, invalidando al publicar una versión nueva, y mediría latencia y hit rate antes de optimizar.
 
 ### D14 — Sin autenticación ni autorización
 
@@ -130,7 +126,6 @@ Los tests fijan las garantías, no solo los caminos felices: dos tramos de escal
 | Relay del outbox | El ejercicio pide explicar la garantía y demostrarla en tests; el esquema, la escritura transaccional, el backoff y el dead-letter están modelados, la entrega queda como siguiente paso (D11). |
 | Front Angular/Flutter | Opcional y no suma al objetivo; preferí invertir el tiempo en las invariantes del backend. |
 | Catálogo, carrito e historial completos | El foco era pricing, cotización y confirmación; el carrito entra como request y el historial se resuelve con `GET /orders/{number}`. |
-| Multi-instancia y particionado | No hacen falta para demostrar las invariantes; el diseño no los impide (claves y constraints globales). |
 
 ## 4. Qué revisaría en un code review de este código
 
