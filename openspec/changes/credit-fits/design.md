@@ -23,7 +23,7 @@ See proposal.md — Why. The engine prices a cart and ignores `Cart.customerId` 
 
 **Tenant-scoped payment method.** `find(tenantId, id)` replaces the unscoped find; the order confirmation passes the quote's tenant. A cross-tenant id must not resolve (the `data-model` isolation). Alternative: keep the unscoped find — rejected: it leaks another tenant's method.
 
-**Non-locking account read.** `CreditAccountRepository.findByCustomer` (no `FOR UPDATE`); the confirmation keeps `lockByCustomer` plus `consume`.
+**Non-locking, tenant-scoped account read.** `CreditAccountRepository.findByCustomerAndTenant(customerId, tenantId)` joins the customer so a cart cannot read another tenant's account; no `FOR UPDATE`. The confirmation keeps its locking read plus `consume`.
 
 **The fit is computed on the final total** (after the levers and the tax) and compares it with the account's `available`. The account without an account resolves to `available: 0` and `NO_ACCOUNT`.
 
@@ -45,6 +45,7 @@ See proposal.md — Why. The engine prices a cart and ignores `Cart.customerId` 
 - **The fit is a snapshot** — the available credit can change before the confirmation. The confirmation re-checks under the lock.
 - **`NO_ACCOUNT` in the preview** means the client must ask the distributor to open the credit account.
 - **The currency assumption** (above) is not enforced by the schema.
+- **A customer id from another tenant** must not expose that tenant's credit account: the account read is tenant-scoped, so such a cart resolves to `NO_ACCOUNT`.
 
 ## Open Questions
 
