@@ -45,6 +45,16 @@ gradlew.bat clean test
 ./gradlew clean test
 ```
 
+Run the tests and, only if they pass, start the service:
+
+```
+# Windows
+.\verify-and-run.bat
+
+# macOS / Linux
+./verify-and-run.sh
+```
+
 ## Endpoints
 
 ### `POST /api/v1/pricing`
