@@ -17,6 +17,8 @@ See proposal.md — Why. `OrderPricingService.price(cart)` returns a `PriceBreak
 
 **The breakdown maps to four tables.** The header maps to `quote`; the **paid** lines to `quote_line`; each applied discount to `quote_line_discount` (the line, the lever reference, the label, the amount); the **gift lines** (`gift = true`) to `quote_gift` (the gift, product, quantity, taxable flag, value and tax). Alternative: store the gift as a quote_line — rejected: `UNIQUE (quote_id, product_id)` collides with a paid line for the same product, and a gift is not a paid line.
 
+**A discount entry carries its line.** Today the response's discount entries carry the lever and the total (e.g. one combo entry of 19000 for two covered lines), while the B1 table needs `(line, lever, amount)`. The engine therefore adds the product to `DiscountBreakdown` and the combo and scale emit **one entry per covered line** (its share); the gift entry stays on the gifted line. Alternative: derive the split from the line's total discount — impossible when two levers touch the same line.
+
 **The `quote_gift` table resolves the pricing-gift open question.** Each gift line freezes the lever id, product, quantity, taxable flag, value and tax, so a gift of a product that is also paid has its own entry.
 
 **The quote is append-only.** The quote and its children are written once in one transaction; a later price or rule change never alters them. The append-only guard already covers `quote` and `quote_line`; `quote_line_discount` and `quote_gift` are added to it.
