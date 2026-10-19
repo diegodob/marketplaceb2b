@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -24,6 +25,11 @@ class ScalePricingTest extends AbstractIntegrationTest {
 
     @Autowired
     private OrderPricingService service;
+
+    @BeforeEach
+    void clearGifts() {
+        jdbc.update("DELETE FROM gift WHERE ruleset_id = ?", gtRulesetId());
+    }
 
     @Test
     void appliesTheSkuScaleAtItsFirstTier() {

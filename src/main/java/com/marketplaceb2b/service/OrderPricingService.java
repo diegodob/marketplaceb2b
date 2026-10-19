@@ -16,6 +16,7 @@ import com.marketplaceb2b.dto.CartLine;
 import com.marketplaceb2b.dto.LineBreakdown;
 import com.marketplaceb2b.dto.PriceBreakdown;
 import com.marketplaceb2b.model.Combo;
+import com.marketplaceb2b.model.Gift;
 import com.marketplaceb2b.model.Money;
 import com.marketplaceb2b.model.Product;
 import com.marketplaceb2b.model.ProductPrice;
@@ -23,6 +24,7 @@ import com.marketplaceb2b.model.Ruleset;
 import com.marketplaceb2b.model.ScaleDiscount;
 import com.marketplaceb2b.model.TaxRate;
 import com.marketplaceb2b.repository.ComboRepository;
+import com.marketplaceb2b.repository.GiftRepository;
 import com.marketplaceb2b.repository.ProductPriceRepository;
 import com.marketplaceb2b.repository.ProductRepository;
 import com.marketplaceb2b.repository.RulesetRepository;
@@ -44,35 +46,43 @@ public class OrderPricingService {
     private final TaxRateRepository taxRates;
     private final ComboRepository comboRepository;
     private final ScaleDiscountRepository scaleRepository;
+    private final GiftRepository giftRepository;
     private final PricingPipeline pipeline;
     private final Clock clock;
 
     public OrderPricingService(RulesetRepository rulesets, ProductPriceRepository productPrices,
                                ProductRepository products, TaxRateRepository taxRates,
                                ComboRepository comboRepository, ScaleDiscountRepository scaleRepository,
-                               PricingPipeline pipeline, Clock clock) {
+                               GiftRepository giftRepository, PricingPipeline pipeline, Clock clock) {
         this.rulesets = rulesets;
         this.productPrices = productPrices;
         this.products = products;
         this.taxRates = taxRates;
         this.comboRepository = comboRepository;
         this.scaleRepository = scaleRepository;
+        this.giftRepository = giftRepository;
         this.pipeline = pipeline;
         this.clock = clock;
     }
 
     public PriceBreakdown price(Cart cart) {
         Ruleset ruleset = currentRuleset(cart.tenantId());
-        Set<Long> productIds = productIds(cart);
-        Map<Long, ProductPrice> prices = pricesByProduct(ruleset, productIds);
+        Set<Long> cartProductIds = productIds(cart);
+        List<Gift> gifts = giftRepository.findByRuleset(ruleset.id());
+
+        Set<Long> priceProductIds = new LinkedHashSet<>(cartProductIds);
+        for (Gift gift : gifts) {
+            priceProductIds.add(gift.giftProductId());
+        }
+        Map<Long, ProductPrice> prices = pricesByProduct(ruleset, priceProductIds);
         Map<Long, BigDecimal> rates = ratesByCategory(ruleset);
         List<PricingLine> lines = priceLines(cart, ruleset, prices, rates);
         List<Combo> combos = comboRepository.findByRuleset(ruleset.id());
         List<ScaleDiscount> scales = scaleRepository.findByRuleset(ruleset.id());
-        List<Product> cartProducts = products.findByIds(cart.tenantId(), productIds);
+        List<Product> cartProducts = products.findByIds(cart.tenantId(), cartProductIds);
 
         PricingContext context = new PricingContext(cart, ruleset, prices, rates, lines, combos, scales,
-                cartProducts);
+                cartProducts, gifts);
         pipeline.run(context);
 
         return breakdown(context);
@@ -90,11 +100,11 @@ public class OrderPricingService {
             Money gross = line.gross();
             Money discount = line.discount();
             Money base = line.taxableBase();
-            Money tax = base.percentage(line.rate());
+            Money tax = taxOf(line);
 
             lines.add(new LineBreakdown(
                     line.productId(), line.qty(), line.unitPrice(),
-                    gross.amount(), discount.amount(), base.amount(), line.rate(), tax.amount()));
+                    gross.amount(), discount.amount(), base.amount(), line.rate(), tax.amount(), line.gift()));
 
             grossSubtotal = grossSubtotal.plus(gross);
             totalDiscounts = totalDiscounts.plus(discount);
@@ -109,12 +119,25 @@ public class OrderPricingService {
                 ruleset.currency().trim(),
                 List.copyOf(lines),
                 context.discounts(),
-                context.gifts(),
                 grossSubtotal.amount(),
                 totalDiscounts.amount(),
                 totalBase.amount(),
                 totalTax.amount(),
                 total.amount());
+    }
+
+    /**
+     * A normal line is taxed on its net base. A gift is free, so its base is zero; a taxable gift is
+     * still taxed on its gross (the value before the GIFT discount), and a non-taxable one pays no tax.
+     */
+    private static Money taxOf(PricingLine line) {
+        if (!line.gift()) {
+            return line.taxableBase().percentage(line.rate());
+        }
+        if (!line.taxable()) {
+            return Money.zero(line.gross().scale(), line.gross().roundingMode());
+        }
+        return line.gross().percentage(line.rate());
     }
 
     private Ruleset currentRuleset(long tenantId) {

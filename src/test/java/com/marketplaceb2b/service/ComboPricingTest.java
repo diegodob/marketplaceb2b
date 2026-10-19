@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -23,6 +24,11 @@ class ComboPricingTest extends AbstractIntegrationTest {
 
     @Autowired
     private OrderPricingService service;
+
+    @BeforeEach
+    void clearGifts() {
+        jdbc.update("DELETE FROM gift WHERE ruleset_id = ?", gtRulesetId());
+    }
 
     @Test
     void appliesTheSeededComboToTheCoveredMinimums() {
@@ -196,15 +202,6 @@ class ComboPricingTest extends AbstractIntegrationTest {
         assertThat(breakdown.totalDiscounts().scale()).isZero();
         assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("20000");
         assertThat(breakdown.total()).isEqualByComparingTo("23800");
-    }
-
-    @Test
-    void reportsNoGiftEntriesBecauseGiftsAreOutOfScope() {
-        PriceBreakdown breakdown = service.price(guatemalaCart(map("LEC-1L", 9)));
-
-        assertThat(breakdown.gifts()).isEmpty();
-        assertThat(breakdown.discounts()).isEmpty();
-        assertThat(breakdown.total()).isEqualByComparingTo("54000.00");
     }
 
     private long product(long tenantId, String sku) {

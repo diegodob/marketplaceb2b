@@ -9,8 +9,8 @@ import java.util.Map;
 import com.marketplaceb2b.dto.Cart;
 import com.marketplaceb2b.dto.DiscountBreakdown;
 import com.marketplaceb2b.dto.DiscountOrigin;
-import com.marketplaceb2b.dto.GiftBreakdown;
 import com.marketplaceb2b.model.Combo;
+import com.marketplaceb2b.model.Gift;
 import com.marketplaceb2b.model.Money;
 import com.marketplaceb2b.model.Product;
 import com.marketplaceb2b.model.ProductPrice;
@@ -19,7 +19,8 @@ import com.marketplaceb2b.model.ScaleDiscount;
 
 /**
  * The cart, the ruleset and the loaded rules, plus the mutable accumulators the levers write to: the
- * per-line state, the discount entries and the gift entries.
+ * per-line state and the discount entries. A gift adds a marked line that is never indexed by product,
+ * so it cannot shadow a paid line for the same product.
  */
 public final class PricingContext {
 
@@ -31,15 +32,16 @@ public final class PricingContext {
     private final Map<Long, Combo> combosById;
     private final List<ScaleDiscount> scales;
     private final Map<Long, ScaleDiscount> scalesById;
-    private final List<PricingLine> lines;
+    private final List<Gift> gifts;
+    private final Map<Long, Gift> giftsById;
+    private final List<PricingLine> lines = new ArrayList<>();
     private final Map<Long, PricingLine> linesByProduct;
     private final Map<Long, Product> products;
     private final List<DiscountBreakdown> discounts = new ArrayList<>();
-    private final List<GiftBreakdown> gifts = new ArrayList<>();
 
     public PricingContext(Cart cart, Ruleset ruleset, Map<Long, ProductPrice> prices, Map<Long, BigDecimal> rates,
                           List<PricingLine> lines, List<Combo> combos, List<ScaleDiscount> scales,
-                          List<Product> products) {
+                          List<Product> products, List<Gift> gifts) {
         this.cart = cart;
         this.ruleset = ruleset;
         this.prices = Map.copyOf(prices);
@@ -54,7 +56,12 @@ public final class PricingContext {
         for (ScaleDiscount scale : scales) {
             scalesById.put(scale.id(), scale);
         }
-        this.lines = List.copyOf(lines);
+        this.gifts = List.copyOf(gifts);
+        this.giftsById = new LinkedHashMap<>();
+        for (Gift gift : gifts) {
+            giftsById.put(gift.id(), gift);
+        }
+        this.lines.addAll(lines);
         this.linesByProduct = new LinkedHashMap<>();
         for (PricingLine line : lines) {
             linesByProduct.put(line.productId(), line);
@@ -82,7 +89,7 @@ public final class PricingContext {
     }
 
     public List<PricingLine> lines() {
-        return lines;
+        return List.copyOf(lines);
     }
 
     public List<Combo> combos() {
@@ -91,6 +98,10 @@ public final class PricingContext {
 
     public List<ScaleDiscount> scales() {
         return scales;
+    }
+
+    public List<Gift> gifts() {
+        return gifts;
     }
 
     public PricingLine line(long productId) {
@@ -105,6 +116,10 @@ public final class PricingContext {
         return scalesById.get(id);
     }
 
+    public Gift gift(long id) {
+        return giftsById.get(id);
+    }
+
     public Long familyOf(long productId) {
         Product product = products.get(productId);
         return product == null ? null : product.familyId();
@@ -115,19 +130,16 @@ public final class PricingContext {
         return line == null ? 0 : line.availableUnits();
     }
 
+    /** Appends a gift line without indexing it by product, so a paid line for the same product is kept. */
+    public void addGiftLine(PricingLine line) {
+        lines.add(line);
+    }
+
     public void recordDiscount(DiscountOrigin origin, long sourceId, String detail, Money amount) {
         discounts.add(new DiscountBreakdown(origin, sourceId, detail, amount.amount()));
     }
 
-    public void recordGift(long productId, int qty, boolean taxable, Money tax) {
-        gifts.add(new GiftBreakdown(productId, qty, taxable, tax.amount()));
-    }
-
     public List<DiscountBreakdown> discounts() {
         return List.copyOf(discounts);
-    }
-
-    public List<GiftBreakdown> gifts() {
-        return List.copyOf(gifts);
     }
 }
