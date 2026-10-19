@@ -116,7 +116,7 @@ class GiftPricingTest extends AbstractIntegrationTest {
 
     @Test
     void giftLineDoesNotTriggerAScale() {
-        insertScale(DiscountTargetType.FAMILY, null, familyId("Aguas"), 10, 5);
+        insertScale(DiscountTargetType.FAMILY, null, familyId("Aguas"), 0, 10, 5);
         give(gtRulesetId(), condition(null, null, null, "0"), "AGU-500", 10, false);
 
         PriceBreakdown breakdown = service.price(guatemalaCart(map("AGU-500", 1)));
@@ -166,20 +166,132 @@ class GiftPricingTest extends AbstractIntegrationTest {
         assertThat(breakdown.total()).isEqualByComparingTo("18192");
     }
 
+    @Test
+    void comboAndGiftOnDifferentProducts() {
+        insertCombo("Gaseosa + Agua", "20000", 20, "GAS-500", 6, "AGU-500", 6);
+        give(gtRulesetId(), condition(null, null, null, "0"), "LEC-1L", 1, false);
+
+        PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 6, "AGU-500", 6)));
+
+        assertThat(breakdown.discounts()).extracting(DiscountBreakdown::origin)
+                .containsExactlyInAnyOrder(DiscountOrigin.COMBO, DiscountOrigin.GIFT);
+        assertThat(giftLine(breakdown, gtProduct("LEC-1L")).qty()).isEqualTo(1);
+        assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("25000.00");
+        assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("20000.00");
+        assertThat(breakdown.total()).isEqualByComparingTo("22400.00");
+    }
+
+    @Test
+    void comboAndGiftOnTheSameProduct() {
+        insertCombo("Gaseosa + Agua", "20000", 20, "GAS-500", 6, "AGU-500", 6);
+        give(gtRulesetId(), condition(null, null, null, "0"), "AGU-500", 1, false, 50);
+
+        PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 6, "AGU-500", 6)));
+
+        assertThat(breakdown.discounts()).extracting(DiscountBreakdown::origin)
+                .containsExactlyInAnyOrder(DiscountOrigin.COMBO, DiscountOrigin.GIFT);
+        assertThat(paidLine(breakdown, gtProduct("AGU-500")).discount()).isEqualByComparingTo("7307.69");
+        assertThat(giftLine(breakdown, gtProduct("AGU-500")).discount()).isEqualByComparingTo("2500.00");
+        assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("21500.00");
+        assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("20000.00");
+        assertThat(breakdown.total()).isEqualByComparingTo("22400.00");
+    }
+
+    @Test
+    void scaleAndGiftOnDifferentProducts() {
+        insertScale(DiscountTargetType.SKU, gtProduct("GAS-500"), null, 10, 12, 3);
+        give(gtRulesetId(), condition(null, null, null, "0"), "LEC-1L", 1, false);
+
+        PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 12)));
+
+        assertThat(breakdown.discounts()).extracting(DiscountBreakdown::origin)
+                .containsExactlyInAnyOrder(DiscountOrigin.SCALE, DiscountOrigin.GIFT);
+        assertThat(paidLine(breakdown, gtProduct("GAS-500")).discount()).isEqualByComparingTo("1440.00");
+        assertThat(giftLine(breakdown, gtProduct("LEC-1L")).discount()).isEqualByComparingTo("6000.00");
+        assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("7440.00");
+        assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("46560.00");
+        assertThat(breakdown.total()).isEqualByComparingTo("52147.20");
+    }
+
+    @Test
+    void scaleAndGiftOnTheSameProduct() {
+        insertScale(DiscountTargetType.SKU, gtProduct("AGU-500"), null, 10, 10, 5);
+        give(gtRulesetId(), condition(null, null, null, "0"), "AGU-500", 10, false, 50);
+
+        PriceBreakdown breakdown = service.price(guatemalaCart(map("AGU-500", 10)));
+
+        assertThat(breakdown.discounts()).extracting(DiscountBreakdown::origin)
+                .containsExactlyInAnyOrder(DiscountOrigin.SCALE, DiscountOrigin.GIFT);
+        assertThat(paidLine(breakdown, gtProduct("AGU-500")).discount()).isEqualByComparingTo("1250.00");
+        assertThat(giftLine(breakdown, gtProduct("AGU-500")).discount()).isEqualByComparingTo("25000.00");
+        assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("26250.00");
+        assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("23750.00");
+        assertThat(breakdown.total()).isEqualByComparingTo("26600.00");
+    }
+
+    @Test
+    void comboScaleAndGiftOnTheSameProduct() {
+        insertCombo("Gaseosa + Agua", "20000", 20, "GAS-500", 6, "AGU-500", 6);
+        insertScale(DiscountTargetType.SKU, gtProduct("GAS-500"), null, 10, 12, 3);
+        give(gtRulesetId(), condition(null, null, null, "0"), "GAS-500", 1, false, 50);
+
+        PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 18, "AGU-500", 6)));
+
+        assertThat(breakdown.discounts()).extracting(DiscountBreakdown::origin)
+                .containsExactlyInAnyOrder(DiscountOrigin.COMBO, DiscountOrigin.SCALE, DiscountOrigin.GIFT);
+        assertThat(paidLine(breakdown, gtProduct("GAS-500")).discount()).isEqualByComparingTo("13132.31");
+        assertThat(giftLine(breakdown, gtProduct("GAS-500")).discount()).isEqualByComparingTo("4000.00");
+        assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("24440.00");
+        assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("66560.00");
+        assertThat(breakdown.total()).isEqualByComparingTo("74547.20");
+    }
+
+    @Test
+    void comboScaleAndGiftOnDifferentProducts() {
+        insertCombo("Gaseosa + Agua", "20000", 20, "GAS-500", 6, "AGU-500", 6);
+        insertScale(DiscountTargetType.SKU, gtProduct("GAS-500"), null, 10, 12, 3);
+        give(gtRulesetId(), condition(null, null, null, "0"), "LEC-1L", 1, false);
+
+        PriceBreakdown breakdown = service.price(guatemalaCart(map("GAS-500", 18, "AGU-500", 6)));
+
+        assertThat(breakdown.discounts()).extracting(DiscountBreakdown::origin)
+                .containsExactlyInAnyOrder(DiscountOrigin.COMBO, DiscountOrigin.SCALE, DiscountOrigin.GIFT);
+        assertThat(paidLine(breakdown, gtProduct("GAS-500")).discount()).isEqualByComparingTo("13132.31");
+        assertThat(giftLine(breakdown, gtProduct("LEC-1L")).discount()).isEqualByComparingTo("6000.00");
+        assertThat(breakdown.totalDiscounts()).isEqualByComparingTo("26440.00");
+        assertThat(breakdown.totalTaxableBase()).isEqualByComparingTo("66560.00");
+        assertThat(breakdown.total()).isEqualByComparingTo("74547.20");
+    }
+
     private long condition(Long productId, Long familyId, Integer minQty, String minAmount) {
         return insert("INSERT INTO gift_condition (product_id, family_id, min_qty, min_amount) VALUES (?, ?, ?, ?)",
                 productId, familyId, minQty, minAmount == null ? null : new BigDecimal(minAmount));
     }
 
     private void give(long rulesetId, long conditionId, String giftSku, int qty, boolean taxable) {
-        long tenantId = rulesetId == coRulesetId() ? coTenantId() : gtTenantId();
-        insert("INSERT INTO gift (ruleset_id, condition_id, gift_product_id, gift_qty, taxable) "
-                + "VALUES (?, ?, ?, ?, ?)", rulesetId, conditionId, productId(tenantId, giftSku), qty, taxable);
+        give(rulesetId, conditionId, giftSku, qty, taxable, 0);
     }
 
-    private void insertScale(DiscountTargetType type, Long productId, Long familyId, int fromQty, int percentage) {
+    private void give(long rulesetId, long conditionId, String giftSku, int qty, boolean taxable, int priority) {
+        long tenantId = rulesetId == coRulesetId() ? coTenantId() : gtTenantId();
+        insert("INSERT INTO gift (ruleset_id, condition_id, gift_product_id, gift_qty, taxable, priority) "
+                + "VALUES (?, ?, ?, ?, ?, ?)", rulesetId, conditionId, productId(tenantId, giftSku), qty, taxable,
+                priority);
+    }
+
+    private void insertCombo(String name, String comboPrice, int priority, Object... productQty) {
+        long id = insert("INSERT INTO combo (ruleset_id, name, combo_price, priority) VALUES (?, ?, ?, ?)",
+                gtRulesetId(), name, new BigDecimal(comboPrice), priority);
+        for (int i = 0; i < productQty.length; i += 2) {
+            insert("INSERT INTO combo_item (combo_id, product_id, min_qty) VALUES (?, ?, ?)",
+                    id, gtProduct((String) productQty[i]), productQty[i + 1]);
+        }
+    }
+
+    private void insertScale(DiscountTargetType type, Long productId, Long familyId, int priority, int fromQty,
+                             int percentage) {
         long id = insert("INSERT INTO scale_discount (ruleset_id, target_type, product_id, family_id, priority) "
-                + "VALUES (?, ?, ?, ?, 0)", gtRulesetId(), type.name(), productId, familyId);
+                + "VALUES (?, ?, ?, ?, ?)", gtRulesetId(), type.name(), productId, familyId, priority);
         insert("INSERT INTO scale_tier (scale_discount_id, from_qty, percentage) VALUES (?, ?, ?)",
                 id, fromQty, new BigDecimal(percentage));
     }
