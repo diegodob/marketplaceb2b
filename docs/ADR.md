@@ -33,4 +33,4 @@ El pipeline determinista puede no ser el óptimo económico. Lo mitigo con prior
 
 ## Cómo correrlo
 
-`.\verify-and-run.bat` (Windows) o `./verify-and-run.sh` corren los tests y, si pasan, levantan la API en `:8080`; también `gradlew.bat clean test` y `gradlew.bat bootRun`. Detalle: [README](https://github.com/diegodob/marketplaceb2b/blob/main/README.md), [DER](https://github.com/diegodob/marketplaceb2b/blob/main/docs/DER.md), [CURL-EXAMPLES](https://github.com/diegodob/marketplaceb2b/blob/main/docs/CURL-EXAMPLES.md).
+`.\verify-and-run.bat` (Windows) o `./verify-and-run.sh` corren los tests y, si pasan, levantan la API en `:8080`; también `gradlew.bat clean test` y `gradlew.bat bootRun`. [README](https://github.com/diegodob/marketplaceb2b/blob/main/README.md), [DER](https://github.com/diegodob/marketplaceb2b/blob/main/docs/DER.md), [CURL-EXAMPLES](https://github.com/diegodob/marketplaceb2b/blob/main/docs/CURL-EXAMPLES.md), [GoldenSetTest](https://github.com/diegodob/marketplaceb2b/blob/main/src/test/java/com/marketplaceb2b/service/GoldenSetTest.java).
