@@ -7,7 +7,7 @@ Prices a cart against a tenant's active commercial rules into a per-line and tot
 
 ### Requirement: Order breakdown
 
-Given a cart and the tenant's current ruleset, the engine SHALL return a breakdown per line and in totals: gross value, discount, the taxable base, the tax and the total to pay, plus the discount entries. A gift appears as a marked line, never as a separate list.
+Given a cart and the tenant's current ruleset, the engine SHALL return a breakdown per line and in totals: gross value, discount, the taxable base, the tax and the total to pay, plus the discount entries, each identifying the line it applies to. A gift appears as a marked line, never as a separate list.
 
 #### Scenario: Breakdown reports per-line and totals
 
@@ -18,6 +18,11 @@ Given a cart and the tenant's current ruleset, the engine SHALL return a breakdo
 
 - **WHEN** a cart is priced and no lever applies
 - **THEN** the discount entries are empty and the total equals the gross plus the tax
+
+#### Scenario: A discount entry identifies its line
+
+- **WHEN** a lever discounts one or more lines
+- **THEN** each discount entry names the product it applies to
 
 ### Requirement: Current ruleset resolution
 
