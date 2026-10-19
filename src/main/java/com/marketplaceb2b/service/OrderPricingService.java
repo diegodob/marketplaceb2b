@@ -13,23 +13,30 @@ import org.springframework.stereotype.Service;
 
 import com.marketplaceb2b.dto.Cart;
 import com.marketplaceb2b.dto.CartLine;
+import com.marketplaceb2b.dto.CreditFit;
+import com.marketplaceb2b.dto.CreditFitReason;
 import com.marketplaceb2b.dto.LineBreakdown;
 import com.marketplaceb2b.dto.PriceBreakdown;
 import com.marketplaceb2b.model.Combo;
+import com.marketplaceb2b.model.CreditAccount;
 import com.marketplaceb2b.model.Gift;
 import com.marketplaceb2b.model.Money;
+import com.marketplaceb2b.model.PaymentMethod;
 import com.marketplaceb2b.model.Product;
 import com.marketplaceb2b.model.ProductPrice;
 import com.marketplaceb2b.model.Ruleset;
 import com.marketplaceb2b.model.ScaleDiscount;
 import com.marketplaceb2b.model.TaxRate;
 import com.marketplaceb2b.repository.ComboRepository;
+import com.marketplaceb2b.repository.CreditAccountRepository;
 import com.marketplaceb2b.repository.GiftRepository;
+import com.marketplaceb2b.repository.PaymentMethodRepository;
 import com.marketplaceb2b.repository.ProductPriceRepository;
 import com.marketplaceb2b.repository.ProductRepository;
 import com.marketplaceb2b.repository.RulesetRepository;
 import com.marketplaceb2b.repository.ScaleDiscountRepository;
 import com.marketplaceb2b.repository.TaxRateRepository;
+import com.marketplaceb2b.service.exception.MissingPaymentMethodException;
 import com.marketplaceb2b.service.exception.MissingPriceException;
 import com.marketplaceb2b.service.exception.MissingTaxRateException;
 import com.marketplaceb2b.service.exception.NoCurrentRulesetException;
@@ -47,13 +54,16 @@ public class OrderPricingService {
     private final ComboRepository comboRepository;
     private final ScaleDiscountRepository scaleRepository;
     private final GiftRepository giftRepository;
+    private final PaymentMethodRepository paymentMethods;
+    private final CreditAccountRepository creditAccounts;
     private final PricingPipeline pipeline;
     private final Clock clock;
 
     public OrderPricingService(RulesetRepository rulesets, ProductPriceRepository productPrices,
                                ProductRepository products, TaxRateRepository taxRates,
                                ComboRepository comboRepository, ScaleDiscountRepository scaleRepository,
-                               GiftRepository giftRepository, PricingPipeline pipeline, Clock clock) {
+                               GiftRepository giftRepository, PaymentMethodRepository paymentMethods,
+                               CreditAccountRepository creditAccounts, PricingPipeline pipeline, Clock clock) {
         this.rulesets = rulesets;
         this.productPrices = productPrices;
         this.products = products;
@@ -61,6 +71,8 @@ public class OrderPricingService {
         this.comboRepository = comboRepository;
         this.scaleRepository = scaleRepository;
         this.giftRepository = giftRepository;
+        this.paymentMethods = paymentMethods;
+        this.creditAccounts = creditAccounts;
         this.pipeline = pipeline;
         this.clock = clock;
     }
@@ -123,7 +135,8 @@ public class OrderPricingService {
                 totalDiscounts.amount(),
                 totalBase.amount(),
                 totalTax.amount(),
-                total.amount());
+                total.amount(),
+                creditFit(context.cart(), total.amount()));
     }
 
     /**
@@ -138,6 +151,37 @@ public class OrderPricingService {
             return Money.zero(line.gross().scale(), line.gross().roundingMode());
         }
         return line.gross().percentage(line.rate());
+    }
+
+    /**
+     * The credit fit is computed on the final total. Null when the cart has no payment method or the
+     * method does not use credit; the method is resolved tenant-scoped and the account without locking.
+     */
+    private CreditFit creditFit(Cart cart, BigDecimal total) {
+        if (cart.paymentMethodId() == null) {
+            return null;
+        }
+        PaymentMethod method = paymentMethods.find(cart.tenantId(), cart.paymentMethodId())
+                .orElseThrow(() -> new MissingPaymentMethodException(cart.tenantId(), cart.paymentMethodId()));
+        if (!method.usesCredit()) {
+            return null;
+        }
+        if (cart.customerId() == null) {
+            return noAccount(total);
+        }
+        return creditAccounts.findByCustomerAndTenant(cart.customerId(), cart.tenantId())
+                .map(account -> fit(account, total))
+                .orElseGet(() -> noAccount(total));
+    }
+
+    private static CreditFit fit(CreditAccount account, BigDecimal total) {
+        boolean fits = total.compareTo(account.available()) <= 0;
+        return new CreditFit(fits, account.available(), total,
+                fits ? CreditFitReason.FITS : CreditFitReason.INSUFFICIENT_CREDIT);
+    }
+
+    private static CreditFit noAccount(BigDecimal total) {
+        return new CreditFit(false, BigDecimal.ZERO, total, CreditFitReason.NO_ACCOUNT);
     }
 
     private Ruleset currentRuleset(long tenantId) {

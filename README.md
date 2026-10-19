@@ -2,7 +2,7 @@
 
 Multi-tenant B2B marketplace API for the order flow: catalog → cart → checkout (quote) → confirmation → history.
 
-A Java 21 / Spring Boot WebFlux service. This repository contains the order-flow foundation: an immutable domain model, a Flyway-managed schema (H2 in PostgreSQL compatibility mode), a JDBC data-access layer with repositories, an order-pricing engine with a priority-driven lever pipeline (combo, scale and gift), an idempotent order-confirmation service, and an HTTP endpoint that prices a cart. Quote creation, the credit-fits check, outbox relay, the order endpoint and the ADR are still pending (see [Scope](#scope)).
+A Java 21 / Spring Boot WebFlux service. This repository contains the order-flow foundation: an immutable domain model, a Flyway-managed schema (H2 in PostgreSQL compatibility mode), a JDBC data-access layer with repositories, an order-pricing engine with a priority-driven lever pipeline (combo, scale and gift) and a credit fit, an idempotent order-confirmation service, and an HTTP endpoint that prices a cart. Quote creation, outbox relay, the order endpoint and the ADR are still pending (see [Scope](#scope)).
 
 ## Stack
 
@@ -49,7 +49,7 @@ gradlew.bat clean test
 
 ### `POST /api/v1/pricing`
 
-Prices a cart against the tenant's current rules and returns the breakdown, per line and in totals.
+Prices a cart against the tenant's current rules and returns the breakdown, per line and in totals, and — when the payment method uses credit — whether the order fits the customer's available credit.
 
 Request:
 
@@ -83,7 +83,8 @@ Response `200` (the seeded combo `Gaseosa + Agua x6` applies):
   "totalDiscounts": 19000.00,
   "totalTaxableBase": 20000.00,
   "totalTax": 2400.00,
-  "total": 22400.00
+  "total": 22400.00,
+  "creditFit": { "fits": true, "available": 300000.00, "total": 22400.00, "reason": "FITS" }
 }
 ```
 
@@ -93,6 +94,7 @@ Errors carry a stable `code`, a clear `message` and optional `details`. The body
 |---|---|---|
 | 400 | `INVALID_REQUEST` | the cart has no tenant, no lines, or a non-positive quantity (a malformed body included) |
 | 422 | `PRODUCT_NOT_SELLABLE` | a cart product has no price in the tenant's current rules |
+| 422 | `PAYMENT_METHOD_NOT_FOUND` | the cart references a payment method that does not exist in its tenant |
 | 503 | `STORE_PRICING_UNAVAILABLE` | the tenant has no pricing in force |
 | 500 | `PRICING_MISCONFIGURED` | a product's tax category has no rate |
 | 500 | `INTERNAL_ERROR` | anything else (the detail is logged, not returned) |
@@ -126,12 +128,11 @@ Implemented:
 - Idempotent, atomic order confirmation (`OrderConfirmationService`): validates the quote, consumes credit when the method uses it, and writes the order, idempotency key, ledger entry and outbox events in one transaction
 - Order-pricing engine (`OrderPricingService`): resolves the tenant's current ruleset, reads prices and tax rates, and computes the gross, the discount, the taxable base, the tax and the total with per-line rounding
 - Priority-driven lever pipeline (`service.pricing`): independent lever strategies, applied by descending priority with exclusivity over consumed units, plus the **combo**, **scale** and **gift** levers
-- Pricing endpoint `POST /api/v1/pricing` (`PricingController`), with validation and non-leaking error responses (`ApiExceptionHandler`)
+- Pricing endpoint `POST /api/v1/pricing` (`PricingController`), with validation, non-leaking error responses (`ApiExceptionHandler`) and the credit fit when the payment method uses credit
 
 Pending:
 
 - **Quote creation** (persist an immutable quote from a cart)
-- **Credit-fits** check (does the order fit the available credit)
 - **Outbox relay** (delivery of pending events)
 - **HTTP endpoints** for quote creation and `POST /orders` with an idempotency key
 - **ADR**
@@ -155,6 +156,10 @@ Money uses `BigDecimal` (never floating point); monetary amounts are `DECIMAL(19
 ### Consistency model
 
 The **quote is immutable** and freezes the ruleset, the prices, the rates and the total, so the quoted and confirmed totals cannot diverge even if prices or rules change between the two moments. Confirmation runs in **a single transaction** (order + idempotency key + credit movement + outbox events) and returns the order number only after the commit; a retry with the same idempotency key returns the original order and never duplicates it or consumes credit twice. Outbound effects use a **transactional outbox** written in the same transaction; delivery is at-least-once and the destination discards duplicates by the event id. The trade-off: at-least-once delivery (no strict exactly-once) and no ordering guarantee.
+
+### Credit fit
+
+When the payment method uses credit, the breakdown carries `creditFit` (`fits`, `available`, `total`, `reason`: `FITS`, `INSUFFICIENT_CREDIT` or `NO_ACCOUNT`), computed on the **final total** after the levers and the tax. The payment method is resolved **tenant-scoped** and the account is read **without locking**; the fit is a **snapshot**, so the confirmation re-checks under the lock and consumes. A customer without an account gets `NO_ACCOUNT` (`fits: false`, `available: 0`) in the preview — the confirmation is the step that refuses the order — and the fit is `null` when the method is absent or does not use credit.
 
 ### Known simplifications & rules (for the ADR)
 

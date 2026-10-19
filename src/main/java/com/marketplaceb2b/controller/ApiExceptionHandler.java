@@ -14,6 +14,7 @@ import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.server.ServerWebInputException;
 
 import com.marketplaceb2b.dto.ApiError;
+import com.marketplaceb2b.service.exception.MissingPaymentMethodException;
 import com.marketplaceb2b.service.exception.MissingPriceException;
 import com.marketplaceb2b.service.exception.MissingTaxRateException;
 import com.marketplaceb2b.service.exception.NoCurrentRulesetException;
@@ -40,6 +41,13 @@ public class ApiExceptionHandler {
         log.warn("No pricing in force: {}", exception.getMessage());
         return error(HttpStatus.SERVICE_UNAVAILABLE, "STORE_PRICING_UNAVAILABLE",
                 "La tienda no tiene precios disponibles en este momento.");
+    }
+
+    @ExceptionHandler(MissingPaymentMethodException.class)
+    public ResponseEntity<ApiError> paymentMethodNotFound(MissingPaymentMethodException exception) {
+        log.info("Unknown payment method: {}", exception.getMessage());
+        return error(HttpStatus.UNPROCESSABLE_ENTITY, "PAYMENT_METHOD_NOT_FOUND",
+                "El medio de pago no es válido.");
     }
 
     @ExceptionHandler(MissingTaxRateException.class)

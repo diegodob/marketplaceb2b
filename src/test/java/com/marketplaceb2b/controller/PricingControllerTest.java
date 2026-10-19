@@ -14,6 +14,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import com.marketplaceb2b.dto.ApiError;
 import com.marketplaceb2b.dto.Cart;
 import com.marketplaceb2b.dto.CartLine;
+import com.marketplaceb2b.dto.CreditFitReason;
 import com.marketplaceb2b.dto.DiscountOrigin;
 import com.marketplaceb2b.dto.PriceBreakdown;
 
@@ -36,6 +37,15 @@ class PricingControllerTest {
 
     private long productId(String sku) {
         return jdbc.queryForObject("SELECT id FROM product WHERE tenant_id = ? AND sku = ?", Long.class, tenantId(), sku);
+    }
+
+    private long customerId() {
+        return jdbc.queryForObject("SELECT id FROM customer WHERE name = 'Cliente 12'", Long.class);
+    }
+
+    private long creditMethodId() {
+        return jdbc.queryForObject("SELECT id FROM payment_method WHERE tenant_id = ? AND code = 'CREDIT'",
+                Long.class, tenantId());
     }
 
     @Test
@@ -154,6 +164,44 @@ class PricingControllerTest {
                     ApiError error = result.getResponseBody();
                     assertThat(error).isNotNull();
                     assertThat(error.code()).isEqualTo("INVALID_REQUEST");
+                });
+    }
+
+    @Test
+    void reportsTheCreditFit() {
+        Cart cart = new Cart(tenantId(), customerId(), creditMethodId(), List.of(new CartLine(productId("LEC-1L"), 5)));
+
+        webTestClient.post().uri("/api/v1/pricing")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(cart)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(PriceBreakdown.class)
+                .consumeWith(result -> {
+                    PriceBreakdown breakdown = result.getResponseBody();
+                    assertThat(breakdown).isNotNull();
+                    assertThat(breakdown.creditFit()).isNotNull();
+                    assertThat(breakdown.creditFit().fits()).isTrue();
+                    assertThat(breakdown.creditFit().reason()).isEqualTo(CreditFitReason.FITS);
+                    assertThat(breakdown.creditFit().available()).isEqualByComparingTo("300000.00");
+                    assertThat(breakdown.creditFit().total()).isEqualByComparingTo("30000.00");
+                });
+    }
+
+    @Test
+    void rejectsAnUnknownPaymentMethod() {
+        Cart cart = new Cart(tenantId(), null, 999999L, List.of(new CartLine(productId("GAS-500"), 1)));
+
+        webTestClient.post().uri("/api/v1/pricing")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(cart)
+                .exchange()
+                .expectStatus().isEqualTo(422)
+                .expectBody(ApiError.class)
+                .consumeWith(result -> {
+                    ApiError error = result.getResponseBody();
+                    assertThat(error).isNotNull();
+                    assertThat(error.code()).isEqualTo("PAYMENT_METHOD_NOT_FOUND");
                 });
     }
 

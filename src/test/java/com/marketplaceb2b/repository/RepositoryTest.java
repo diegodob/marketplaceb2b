@@ -168,13 +168,26 @@ class RepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void paymentMethodRepositoryLoadsSeed() {
-        PaymentMethod method = paymentMethods.find(paymentMethodId("CREDIT")).orElseThrow();
+        PaymentMethod method = paymentMethods.find(gtTenantId(), paymentMethodId("CREDIT")).orElseThrow();
         assertThat(method.usesCredit()).isTrue();
     }
 
     @Test
+    void paymentMethodLookupIsTenantScoped() {
+        long method = paymentMethodId("CREDIT");
+        assertThat(paymentMethods.find(gtTenantId(), method)).isPresent();
+        assertThat(paymentMethods.find(coTenantId(), method)).isEmpty();
+    }
+
+    @Test
+    void creditAccountLookupIsTenantScoped() {
+        assertThat(creditAccounts.findByCustomerAndTenant(gtCustomerId(), gtTenantId())).isPresent();
+        assertThat(creditAccounts.findByCustomerAndTenant(gtCustomerId(), coTenantId())).isEmpty();
+    }
+
+    @Test
     void creditAccountRepositoryLocksAndConsumes() {
-        CreditAccount account = creditAccounts.lockByCustomer(gtCustomerId()).orElseThrow();
+        CreditAccount account = creditAccounts.lockByCustomerAndTenant(gtCustomerId(), gtTenantId()).orElseThrow();
         creditAccounts.consume(account.id(), new BigDecimal("1000.00"));
         BigDecimal available = jdbc.queryForObject("SELECT available FROM credit_account WHERE id = ?",
                 BigDecimal.class, account.id());
