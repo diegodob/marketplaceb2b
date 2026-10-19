@@ -13,5 +13,6 @@ public record PriceBreakdown(
         BigDecimal totalDiscounts,
         BigDecimal totalTaxableBase,
         BigDecimal totalTax,
-        BigDecimal total) {
+        BigDecimal total,
+        CreditFit creditFit) {
 }

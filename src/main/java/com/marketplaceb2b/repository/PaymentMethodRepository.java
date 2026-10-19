@@ -24,9 +24,11 @@ public class PaymentMethodRepository {
         this.access = access;
     }
 
-    public Optional<PaymentMethod> find(long paymentMethodId) {
+    /** Looks the method up scoped by tenant, so another tenant's id never resolves. */
+    public Optional<PaymentMethod> find(long tenantId, long paymentMethodId) {
         return access.queryList(
-                "SELECT id, tenant_id, code, name, uses_credit FROM payment_method WHERE id = :id",
-                Map.of("id", paymentMethodId), MAPPER).stream().findFirst();
+                "SELECT id, tenant_id, code, name, uses_credit FROM payment_method "
+                        + "WHERE tenant_id = :tenantId AND id = :id",
+                Map.of("tenantId", tenantId, "id", paymentMethodId), MAPPER).stream().findFirst();
     }
 }

@@ -67,7 +67,7 @@ public class OrderConfirmationService {
 
         Optional<IdempotencyKey> existing = idempotencyKeys.find(customerId, idempotencyKey);
         if (existing.isPresent()) {
-            SalesOrder order = salesOrders.findById(existing.get().salesOrderId())
+            SalesOrder order = salesOrders.findById(quote.tenantId(), existing.get().salesOrderId())
                     .orElseThrow(() -> new IllegalStateException("Order referenced by the idempotency key is missing"));
             if (!order.quoteId().equals(quoteId)) {
                 throw new IdempotencyConflictException(idempotencyKey);
@@ -75,13 +75,13 @@ public class OrderConfirmationService {
             return OrderConfirmation.replay(order.id(), order.publicNumber());
         }
 
-        PaymentMethod payment = paymentMethods.find(quote.paymentMethodId())
+        PaymentMethod payment = paymentMethods.find(quote.tenantId(), quote.paymentMethodId())
                 .orElseThrow(() -> new IllegalStateException("Payment method not found: " + quote.paymentMethodId()));
 
         Instant now = clock.instant();
         Long creditAccountId = null;
         if (payment.usesCredit()) {
-            CreditAccount account = creditAccounts.lockByCustomer(customerId)
+            CreditAccount account = creditAccounts.lockByCustomerAndTenant(customerId, quote.tenantId())
                     .orElseThrow(() -> new CreditAccountRequiredException(customerId));
             if (account.available().compareTo(quote.total()) < 0) {
                 throw new InsufficientCreditException(account.id(), account.available(), quote.total());
