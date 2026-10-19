@@ -26,6 +26,11 @@ A gift SHALL apply when its condition is met on the gross cart — the cart's un
 - **WHEN** a gift applies
 - **THEN** the line carries the gift product, its quantity and a gift mark, plus a GIFT discount equal to its value
 
+#### Scenario: The cart already carries the gift product
+
+- **WHEN** the cart already has the gift product
+- **THEN** the breakdown shows the paid line and a separate gift line for that product, the gift one marked, and the paid line keeps its units and price
+
 ### Requirement: Gifts accumulate
 
 Every condition met on the gross cart SHALL grant its own gift; a cart that meets several conditions SHALL receive each of them.
@@ -62,3 +67,19 @@ A taxable gift's line SHALL be taxed on its gross — the value before its GIFT 
 
 - **WHEN** a non-taxable gift applies
 - **THEN** its line's tax is zero
+
+## MODIFIED Requirements
+
+### Requirement: Order breakdown
+
+Given a cart and the tenant's current ruleset, the engine SHALL return a breakdown per line and in totals: gross value, discount, the taxable base, the tax and the total to pay, plus the discount entries. A gift appears as a marked line, never as a separate list.
+
+#### Scenario: Breakdown reports per-line and totals
+
+- **WHEN** a cart is priced against a valid ruleset
+- **THEN** each line carries its product, quantity, unit price, gross value, discount, tax rate, taxable base and tax, and the result carries the gross subtotal, the total discounts, the total taxable base, the total tax and the total
+
+#### Scenario: No lever applies
+
+- **WHEN** a cart is priced and no lever applies
+- **THEN** the discount entries are empty and the total equals the gross plus the tax

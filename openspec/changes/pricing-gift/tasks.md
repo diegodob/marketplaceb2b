@@ -11,12 +11,12 @@
 
 ## 3. Tax and totals
 
-- [ ] 3.1 In the breakdown, compute a taxable gift line's tax on its gross (the documented exception) and add it to the total tax and the total; a non-taxable gift line pays no tax; keep the `gifts` summary derived from the gift lines
+- [ ] 3.1 In the breakdown, compute a taxable gift line's tax on its gross (the documented exception) and add it to the total tax and the total; a non-taxable gift line pays no tax; remove the separate `gifts` list (`GiftBreakdown` and `PriceBreakdown.gifts`)
 
 ## 4. Tests
 
 - [ ] 4.1 Happy path: a quantity condition, an amount condition, both (AND), a taxable gift (its tax on the gross enters the total) and a non-taxable gift
-- [ ] 4.2 Edge cases: no condition met; several conditions accumulate; a gift line does not reach the scale/combo; the gift is a marked line with a GIFT discount; different tax rates; the CO currency scale; another tenant's gift does not apply
+- [ ] 4.2 Edge cases: no condition met; several conditions accumulate; a gift line does not reach the scale/combo; the gift is a marked line with a GIFT discount; the cart already carries the gift product (two lines, the gift one marked); different tax rates; the CO currency scale; another tenant's gift does not apply
 - [ ] 4.3 Run `gradlew.bat clean test` and confirm the full suite passes with exit code `0`
 
 ## 5. Documentation

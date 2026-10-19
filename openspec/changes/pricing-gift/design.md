@@ -26,7 +26,9 @@ See proposal.md — Why. The pipeline and the combo and scale strategies exist (
 
 **Accumulation.** Every met condition grants its gift (product owner's decision).
 
-**The response keeps a `gifts` summary** derived from the gift lines (`productId`, `qty`, `taxable`, `tax`), so a client can read the gifted quantity without filtering the lines. The line's gift mark is the source of truth.
+**No separate gifts list.** The response has no `gifts` list: the gift is a marked line and its 100% reduction is a `GIFT` discount entry, so the product, quantity, discount amount and tax are all readable from the lines and the discounts. The gift line is kept out of the by-product index, so a paid line for the same product is never shadowed.
+
+**The cart already carries the gift product.** A gift is always a **separate** line. When the cart already has the product, the breakdown carries the paid line and the gift line, both with the same product and distinguished by the gift mark; the paid line keeps its units and price for the levers. Persistence (quote-creation): `quote_line`'s `UNIQUE (quote_id, product_id)` would reject a second line for the same product, so quote-creation must key the uniqueness by a gift flag or store gifts in a `quote_gift` entry (documented decision).
 
 **Gift product price and rate loaded separately.** The service loads the gift products' prices/rates (they may not be in the cart). A taxable gift requires them; if either is missing the engine fails with the existing explicit errors.
 
@@ -42,7 +44,7 @@ Cart: `GAS-500` ×12 (4000, 12%) and `LEC-1L` ×4 (6000, 0%). The seeded SKU sca
 | LEC-1L | 4 | 6000 | 24000.00 | 0.00 | 24000.00 | 0% | 0.00 |
 | AGU-500 (gift) | 1 | 2500 | 2500.00 | 2500.00 (GIFT) | 0.00 | 12% | **300.00** |
 
-Discounts: `SCALE` 1440.00 and `GIFT` 2500.00. Gift summary: `AGU-500` ×1, taxable, tax 300.00.
+Discounts: `SCALE` 1440.00 and `GIFT` 2500.00. There is no separate gifts list; the gift is the `AGU-500` line marked as a gift.
 
 | grossSubtotal | totalDiscounts | totalTaxableBase | totalTax | total |
 |---|---|---|---|---|
