@@ -107,4 +107,4 @@ Otro tenant con el mismo número recibe 404.
 | Cotización vencida | `422 {"code":"QUOTE_EXPIRED","message":"La cotización venció. Volvé a cotizar.","details":{}}` |
 | Falta header o body inválido | `400 {"code":"INVALID_REQUEST","message":"La solicitud no es válida.","details":{}}` |
 
-Volver al [ADR](ADR.md) o al [DER](DER.md).
+Volver al [ADR](https://github.com/diegodob/marketplaceb2b/blob/main/docs/ADR.md) o al [DER](https://github.com/diegodob/marketplaceb2b/blob/main/docs/DER.md).

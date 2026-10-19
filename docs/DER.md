@@ -180,4 +180,4 @@ erDiagram
     }
 ```
 
-Volver al [ADR](ADR.md).
+Volver al [ADR](https://github.com/diegodob/marketplaceb2b/blob/main/docs/ADR.md).
